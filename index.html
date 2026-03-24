@@ -368,24 +368,33 @@ var EDIT_ID = parseInt(URL_PARAMS.get('ID') || URL_PARAMS.get('id') || '0', 10) 
 var IS_EDIT_MODE = EDIT_ID > 0;
 
 /* MSAL.js Authentication */
+var REDIRECT_URI = window.location.origin + '/dipsa-ot-form/';
+console.log('MSAL redirectUri:', REDIRECT_URI);
 var msalConfig = {
   auth: {
     clientId: 'ebedead8-7288-4404-b7fc-bf22a0959a01',
     authority: 'https://login.microsoftonline.com/6b3864ba-3389-48e6-bcec-1d1db22062af',
-    redirectUri: window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/')
+    redirectUri: REDIRECT_URI
   },
   cache: {
-    cacheLocation: 'sessionStorage',
+    cacheLocation: 'localStorage',
     storeAuthStateInCookie: false
+  },
+  system: {
+    loggerOptions: {
+      logLevel: 3,
+      piiLoggingEnabled: false,
+      loggerCallback: function(level, message) { console.log('[MSAL]', message); }
+    }
   }
 };
-var msalInstance = new msal.PublicClientApplication(msalConfig);
+var msalInstance = null;
 var SP_SCOPES = ['https://ceprd.sharepoint.com/AllSites.Write'];
 
 function getAccessToken() {
   var accounts = msalInstance.getAllAccounts();
   if (!accounts.length) {
-    return msalInstance.loginPopup({ scopes: SP_SCOPES }).then(function(r) { return r.accessToken; });
+    return msalInstance.acquireTokenPopup({ scopes: SP_SCOPES }).then(function(r) { return r.accessToken; });
   }
   return msalInstance.acquireTokenSilent({
     scopes: SP_SCOPES,
@@ -393,22 +402,24 @@ function getAccessToken() {
   }).then(function(r) {
     return r.accessToken;
   }).catch(function() {
-    return msalInstance.acquireTokenSilent({
-      scopes: SP_SCOPES,
-      account: accounts[0],
-      forceRefresh: true
-    }).catch(function() {
-      return msalInstance.loginPopup({ scopes: SP_SCOPES }).then(function(r) { return r.accessToken; });
-    });
+    return msalInstance.acquireTokenPopup({ scopes: SP_SCOPES }).then(function(r) { return r.accessToken; });
   });
 }
 
 function doLogin() {
-  msalInstance.loginPopup({ scopes: SP_SCOPES }).then(function(r) {
+  document.getElementById('authStatus').textContent = 'Abriendo ventana de login...';
+  document.getElementById('btnLogin').disabled = true;
+  msalInstance.loginPopup({
+    scopes: SP_SCOPES,
+    prompt: 'select_account'
+  }).then(function(r) {
     document.getElementById('authStatus').textContent = 'Autenticado como ' + r.account.username;
     initForm();
   }).catch(function(e) {
     document.getElementById('authStatus').textContent = 'Error: ' + e.message;
+    document.getElementById('btnLogin').disabled = false;
+    document.getElementById('btnLogin').style.display = 'inline-block';
+    console.error('Login error:', e);
   });
 }
 
@@ -1131,21 +1142,49 @@ function initForm() {
 }
 
 /* MSAL initialization */
-msalInstance.initialize().then(function() {
-  return msalInstance.handleRedirectPromise();
-}).then(function() {
+try {
+  msalInstance = new msal.PublicClientApplication(msalConfig);
+  console.log('MSAL instance created');
+} catch(e) {
+  console.error('MSAL create error:', e);
+  document.getElementById('authStatus').textContent = 'Error creando MSAL: ' + e.message;
+  document.getElementById('btnLogin').style.display = 'inline-block';
+}
+
+if (msalInstance && typeof msalInstance.initialize === 'function') {
+  /* MSAL v2 async init */
+  document.getElementById('authStatus').textContent = 'Inicializando...';
+  msalInstance.initialize().then(function() {
+    console.log('MSAL initialized');
+    return msalInstance.handleRedirectPromise();
+  }).then(function(resp) {
+    console.log('handleRedirectPromise done', resp);
+    if (resp && resp.account) {
+      document.getElementById('authStatus').textContent = 'Autenticado como ' + resp.account.username;
+      return getAccessToken().then(function() { initForm(); });
+    }
+    var accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+      document.getElementById('authStatus').textContent = 'Bienvenido ' + accounts[0].username;
+      return getAccessToken().then(function() { initForm(); });
+    }
+    document.getElementById('authStatus').textContent = 'Haga clic para iniciar sesión';
+    document.getElementById('btnLogin').style.display = 'inline-block';
+  }).catch(function(e) {
+    console.error('MSAL init error:', e);
+    document.getElementById('authStatus').textContent = 'Error: ' + e.message;
+    document.getElementById('btnLogin').style.display = 'inline-block';
+  });
+} else if (msalInstance) {
+  /* MSAL v1 fallback - no initialize needed */
   var accounts = msalInstance.getAllAccounts();
   if (accounts.length > 0) {
-    document.getElementById('authStatus').textContent = 'Autenticado como ' + accounts[0].username;
-    return getAccessToken().then(function() { initForm(); });
+    getAccessToken().then(function() { initForm(); });
   } else {
-    document.getElementById('authStatus').textContent = 'Debe iniciar sesión para continuar';
+    document.getElementById('authStatus').textContent = 'Haga clic para iniciar sesión';
     document.getElementById('btnLogin').style.display = 'inline-block';
   }
-}).catch(function(e) {
-  document.getElementById('authStatus').textContent = 'Error de autenticación: ' + e.message;
-  document.getElementById('btnLogin').style.display = 'inline-block';
-});
+}
 </script>
 </body>
 </html>
