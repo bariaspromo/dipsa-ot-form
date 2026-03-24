@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nueva Orden de Trabajo - CEP DIPSA</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f3f2f1;color:#323130;min-height:100vh}
+.top-bar{background:#0078d4;padding:8px 20px;display:flex;align-items:center;gap:12px}
+.top-bar a{color:#fff;text-decoration:none;font-size:13px;opacity:0.85}
+.top-bar a:hover{opacity:1}
+.top-bar .sep{color:rgba(255,255,255,0.4)}
+.container{max-width:960px;margin:0 auto;padding:20px}
+.header{background:linear-gradient(135deg,#0078d4,#004578);color:#fff;padding:28px 32px;border-radius:12px 12px 0 0;position:relative;overflow:hidden}
+.header::after{content:'';position:absolute;top:-40%;right:-10%;width:180px;height:180px;background:rgba(255,255,255,0.06);border-radius:50%}
+.header h1{font-size:22px;font-weight:600;margin-bottom:4px}
+.header p{opacity:0.85;font-size:13px}
+.body{background:#fff;border-radius:0 0 12px 12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);padding-bottom:24px}
+.progress{display:flex;gap:6px;padding:12px 28px;background:#faf9f8;border-bottom:1px solid #edebe9;align-items:center;font-size:12px;color:#605e5c;flex-wrap:wrap}
+.progress .dot{width:8px;height:8px;border-radius:50%;background:#c8c6c4;flex-shrink:0}
+.progress .dot.active{background:#0078d4}
+.progress .dot.done{background:#107c10}
+.quick-tools{display:flex;gap:10px;align-items:end;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #edebe9}
+.quick-tools .tool-field{display:flex;flex-direction:column;min-width:180px}
+.quick-tools .tool-field label{font-size:12px;color:#605e5c;margin-bottom:4px}
+.quick-tools input{padding:7px 10px;border:1px solid #c8c6c4;border-radius:4px;font-size:13px}
+.quick-tools .tool-btn{padding:8px 12px;font-size:12px;border:1px solid #8a8886;background:#fff;border-radius:4px;cursor:pointer}
+.quick-tools .tool-btn.primary{background:#0078d4;color:#fff;border-color:#0078d4}
+.quick-tools .mode-pill{background:#f3f2f1;color:#323130;border-radius:14px;padding:5px 10px;font-size:12px;font-weight:600}
+.section{border-bottom:1px solid #edebe9}
+.section:last-of-type{border-bottom:none}
+.sec-header{display:flex;align-items:center;padding:16px 28px;cursor:pointer;user-select:none;background:#faf9f8;transition:background 0.15s}
+.sec-header:hover{background:#f3f2f1}
+.sec-header .icon{font-size:18px;margin-right:10px;width:28px;text-align:center}
+.sec-header h2{font-size:15px;font-weight:600;color:#323130;flex:1}
+.sec-header .badge{background:#0078d4;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;margin-right:8px}
+.sec-header .chev{font-size:12px;color:#605e5c;transition:transform 0.2s}
+.sec-header.collapsed .chev{transform:rotate(-90deg)}
+.sec-content{padding:8px 28px 20px;display:grid;grid-template-columns:1fr 1fr;gap:14px 24px}
+.sec-content.hidden{display:none}
+.field{display:flex;flex-direction:column}
+.field.full{grid-column:1/-1}
+.field label{font-size:13px;font-weight:600;color:#323130;margin-bottom:5px;display:flex;align-items:center;gap:4px}
+.field label .req{color:#d13438;font-weight:700}
+.field label .auto-tag{background:#0078d4;color:#fff;font-size:9px;padding:1px 7px;border-radius:10px;font-weight:600;margin-left:4px}
+.field input,.field select,.field textarea{padding:8px 12px;border:1px solid #8a8886;border-radius:4px;font-size:14px;color:#323130;background:#fff;transition:border-color 0.15s,box-shadow 0.15s;font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#0078d4;box-shadow:0 0 0 2px rgba(0,120,212,0.15)}
+.field input:disabled,.field select:disabled,.field textarea:disabled{background:#f3f2f1;color:#605e5c;cursor:not-allowed;border-color:#c8c6c4}
+.field input.error,.field select.error,.field textarea.error{border-color:#d13438;box-shadow:0 0 0 2px rgba(209,52,56,0.12)}
+.field .hint{font-size:11px;color:#605e5c;margin-top:3px}
+.field textarea{resize:vertical;min-height:70px}
+.checkbox-group{display:flex;flex-wrap:wrap;gap:8px 16px;padding:4px 0}
+.checkbox-group label,.radio-group label{font-weight:400;font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer}
+.checkbox-group input[type=checkbox],.radio-group input[type=radio]{width:16px;height:16px;accent-color:#0078d4}
+.radio-group{display:flex;flex-wrap:wrap;gap:12px;padding:4px 0}
+.svc-card{margin-top:8px;padding:12px 16px;background:#f0f6ff;border:1px solid #c7e0f4;border-radius:8px;display:none;font-size:13px;line-height:1.8}
+.svc-card.show{display:block}
+.svc-card b{color:#605e5c;font-weight:600}
+/* Tables for sub-lists */
+.tbl-wrap{grid-column:1/-1;margin-top:4px}
+.tbl-wrap table{width:100%;border-collapse:collapse;font-size:13px}
+.tbl-wrap th{background:#f3f2f1;padding:8px 10px;text-align:left;font-weight:600;border:1px solid #edebe9}
+.tbl-wrap td{padding:6px 10px;border:1px solid #edebe9}
+.tbl-wrap td input{width:100%;border:1px solid #c8c6c4;border-radius:3px;padding:5px 8px;font-size:13px;font-family:inherit}
+.tbl-wrap td input:focus{outline:none;border-color:#0078d4}
+.tbl-wrap .btn-add{margin-top:6px;padding:5px 14px;font-size:12px;cursor:pointer;background:#f0f6ff;border:1px solid #c7e0f4;border-radius:4px;color:#0078d4;font-weight:600}
+.tbl-wrap .btn-add:hover{background:#deecf9}
+.tbl-wrap .btn-del{cursor:pointer;background:none;border:none;color:#d13438;font-size:16px;padding:2px 6px}
+.btn-row{display:flex;gap:12px;justify-content:flex-end;padding:20px 28px 0;flex-wrap:wrap}
+.btn{padding:10px 28px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s}
+.btn-primary{background:#0078d4;color:#fff}
+.btn-primary:hover{background:#106ebe}
+.btn-primary:disabled{background:#c8c6c4;cursor:not-allowed}
+.btn-secondary{background:#fff;color:#323130;border:1px solid #8a8886}
+.btn-secondary:hover{background:#f3f2f1}
+.toast{position:fixed;top:20px;right:20px;padding:14px 24px;border-radius:8px;color:#fff;font-size:14px;font-weight:500;z-index:9999;transform:translateX(120%);transition:transform 0.3s ease;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-width:400px}
+.toast.show{transform:translateX(0)}
+.toast.success{background:#107c10}
+.toast.error{background:#d13438}
+.toast.info{background:#0078d4}
+.overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.7);z-index:9998;align-items:center;justify-content:center}
+.overlay.show{display:flex}
+.spinner{width:40px;height:40px;border:4px solid #edebe9;border-top:4px solid #0078d4;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.success-panel{display:none;text-align:center;padding:60px 28px}
+.success-panel.show{display:block}
+.success-panel .check{font-size:64px;margin-bottom:16px}
+.success-panel h2{font-size:20px;color:#107c10;margin-bottom:8px}
+.success-panel p{color:#605e5c;font-size:14px;margin-bottom:24px}
+.loading-svc{text-align:center;padding:40px;color:#605e5c;font-size:14px}
+</style>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser-min.js"></script>
+</head>
+<body>
+
+<div id="authOverlay" style="position:fixed;top:0;left:0;right:0;bottom:0;background:#f3f2f1;z-index:10000;display:flex;align-items:center;justify-content:center;flex-direction:column">
+<div style="text-align:center;background:#fff;padding:40px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.1)">
+<div style="font-size:48px;margin-bottom:16px">&#128274;</div>
+<h2 style="font-size:18px;color:#323130;margin-bottom:8px">Autenticando...</h2>
+<p id="authStatus" style="color:#605e5c;font-size:14px">Conectando con Microsoft 365</p>
+<button id="btnLogin" style="display:none;margin-top:16px;padding:10px 28px;background:#0078d4;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer" onclick="doLogin()">Iniciar Sesi&oacute;n</button>
+</div>
+</div>
+
+<div class="top-bar">
+<a id="navHome" href="#">&#127968; Inicio</a>
+<span class="sep">|</span>
+<a id="navLista" href="#">&#128203; Lista OT</a>
+<span class="sep">|</span>
+<a id="navPortal" href="#">&#128202; Portal</a>
+</div>
+
+<div class="container">
+<div class="header">
+<h1>&#128736;&#65039; Nueva Orden de Trabajo</h1>
+<p>CEP Equipment Rental &mdash; Operaciones DIPSA</p>
+</div>
+<div class="body" id="formBody">
+<div class="progress">
+<span class="dot active" id="pd1"></span> Servicio &nbsp;
+<span class="dot" id="pd2"></span> Orden &nbsp;
+<span class="dot" id="pd3"></span> Trabajo &nbsp;
+<span class="dot" id="pd4"></span> Recursos &nbsp;
+<span class="dot" id="pd5"></span> Cierre
+</div>
+
+<div class="quick-tools">
+<div class="mode-pill" id="modePill">Modo: Crear</div>
+<div class="tool-field">
+<label>Cargar OT por ID</label>
+<input type="number" id="loadById" placeholder="Ej: 12">
+</div>
+<div class="tool-field">
+<label>Cargar OT por No. Orden</label>
+<input type="number" id="loadByNoOrden" placeholder="Ej: 241431">
+</div>
+<button type="button" class="tool-btn primary" onclick="buscarYCargarOt()">Buscar y Cargar</button>
+<button type="button" class="tool-btn" onclick="nuevoModoCrear()">Nueva OT</button>
+</div>
+
+<!-- ============ S1: SERVICIO Y SOLICITUD ============ -->
+<div class="section">
+<div class="sec-header" onclick="toggleSec(this)">
+<span class="icon">&#128204;</span>
+<h2>Informaci&oacute;n del Servicio</h2>
+<span class="chev">&#9660;</span>
+</div>
+<div class="sec-content">
+<div class="field full">
+<label>N&uacute;mero de Servicio <span class="req">*</span></label>
+<select id="fServ" onchange="onServChange()"><option value="">-- Cargando servicios... --</option></select>
+<div class="hint">Al seleccionar se auto-rellenan fecha, solicitante, ubicaci&oacute;n y trabajo solicitado</div>
+<div class="svc-card" id="svcCard">
+<b>&#128197; Fecha solicitud:</b> <span id="iF">-</span><br>
+<b>&#128100; Solicitante:</b> <span id="iS">-</span><br>
+<b>&#128205; Ubicaci&oacute;n:</b> <span id="iU">-</span><br>
+<b>&#9993; Asunto:</b> <span id="iA">-</span>
+</div>
+</div>
+<div class="field">
+<label>Cliente <span class="auto-tag">Auto</span></label>
+<input type="text" id="fCli" disabled placeholder="Se rellena al seleccionar servicio">
+</div>
+<div class="field">
+<label>No. Seguimiento <span class="auto-tag">Auto</span></label>
+<input type="text" id="fSeg" disabled placeholder="Asignado por flujo autom&aacute;tico">
+</div>
+<div class="field">
+<label>Fecha de Solicitud <span class="auto-tag">Auto</span></label>
+<input type="text" id="fFechaSol" disabled placeholder="Se rellena del servicio">
+</div>
+<div class="field">
+<label>Solicitado Por <span class="auto-tag">Auto</span></label>
+<input type="text" id="fSolPor" disabled placeholder="Se rellena del servicio">
+</div>
+</div>
+</div>
+
+<!-- ============ S2: DATOS DE LA ORDEN ============ -->
+<div class="section">
+<div class="sec-header" onclick="toggleSec(this)">
+<span class="icon">&#128221;</span>
+<h2>Datos de la Orden</h2>
+<span class="chev">&#9660;</span>
+</div>
+<div class="sec-content">
+<div class="field">
+<label>C&oacute;digo del equipo</label>
+<input type="text" id="fCodEq" placeholder="Ej: EQ-001">
+</div>
+<div class="field">
+<label>Nombre del equipo</label>
+<input type="text" id="fNomEq" placeholder="Ej: Generador el&eacute;ctrico">
+</div>
+<div class="field">
+<label>Lugar del mantenimiento</label>
+<select id="fLugar">
+<option value="">-- Cargando ubicaciones... --</option>
+</select>
+<div class="hint">Se pre-selecciona seg&uacute;n ubicaci&oacute;n del servicio</div>
+</div>
+<div class="field">
+<label>Tipo de Mantenimiento</label>
+<div class="radio-group" id="tMantGroup">
+<span style="color:#605e5c;font-size:12px">Cargando...</span>
+</div>
+</div>
+<div class="field full">
+<label>Tipo de Trabajo a Realizar</label>
+<div class="checkbox-group" id="tTrab">
+<span style="color:#605e5c;font-size:12px">Cargando...</span>
+</div>
+</div>
+<div class="field">
+<label>Clasificaci&oacute;n</label>
+<select id="fClasif">
+<option value="">-- Cargando... --</option>
+</select>
+</div>
+<div class="field">
+<label>Fecha de la Orden</label>
+<input type="datetime-local" id="fFechaOrden">
+</div>
+</div>
+</div>
+
+<!-- ============ S3: DESCRIPCION DEL TRABAJO ============ -->
+<div class="section">
+<div class="sec-header" onclick="toggleSec(this)">
+<span class="icon">&#9999;&#65039;</span>
+<h2>Descripci&oacute;n del Trabajo</h2>
+<span class="chev">&#9660;</span>
+</div>
+<div class="sec-content">
+<div class="field full">
+<label>Trabajo Solicitado <span class="req">*</span></label>
+<textarea id="fTSol" rows="3" placeholder="Se auto-rellena del servicio seleccionado..."></textarea>
+<div class="hint">Se extrae del asunto del correo original. Puede editar si necesita ampliar.</div>
+</div>
+<div class="field full">
+<label>Trabajo Ejecutado</label>
+<textarea id="fTEje" rows="3" placeholder="Puede completarse despu&eacute;s..."></textarea>
+</div>
+</div>
+</div>
+
+<!-- ============ S4: MANO DE OBRA Y RECURSOS ============ -->
+<div class="section">
+<div class="sec-header" onclick="toggleSec(this)">
+<span class="icon">&#128230;</span>
+<h2>Mano de Obra y Recursos</h2>
+<span class="chev">&#9660;</span>
+</div>
+<div class="sec-content">
+<div class="field full">
+<label>Mano de Obra</label>
+<div class="checkbox-group" id="manoObra">
+<span style="color:#605e5c;font-size:12px">Cargando...</span>
+</div>
+</div>
+
+<!-- Materiales y Repuestos sub-table -->
+<div class="tbl-wrap">
+<label style="font-size:13px;font-weight:600;margin-bottom:6px;display:block">Materiales y Repuestos</label>
+<table id="tblMat">
+<thead><tr><th style="width:80px">C&oacute;digo</th><th style="width:60px">Cant.</th><th>Descripci&oacute;n</th><th style="width:90px">Precio</th><th style="width:120px">Proveedor</th><th style="width:30px"></th></tr></thead>
+<tbody id="tbodyMat"></tbody>
+</table>
+<button type="button" class="btn-add" onclick="addMatRow()">+ Agregar material</button>
+</div>
+
+<!-- Equipos Necesarios sub-table -->
+<div class="tbl-wrap">
+<label style="font-size:13px;font-weight:600;margin-bottom:6px;display:block">Equipos Necesarios</label>
+<table id="tblEq">
+<thead><tr><th style="width:80px">C&oacute;digo</th><th style="width:60px">Cant.</th><th>Descripci&oacute;n</th><th style="width:90px">Precio</th><th style="width:120px">Proveedor</th><th style="width:30px"></th></tr></thead>
+<tbody id="tbodyEq"></tbody>
+</table>
+<button type="button" class="btn-add" onclick="addEqRow()">+ Agregar equipo</button>
+</div>
+</div>
+</div>
+
+<!-- ============ S5: EJECUCION Y CIERRE ============ -->
+<div class="section">
+<div class="sec-header" onclick="toggleSec(this)">
+<span class="icon">&#9989;</span>
+<h2>Ejecuci&oacute;n y Cierre</h2>
+<span class="chev">&#9660;</span>
+</div>
+<div class="sec-content">
+<div class="field">
+<label>Fecha Inicio Mantenimiento</label>
+<input type="datetime-local" id="fFI">
+</div>
+<div class="field">
+<label>Fecha de Culminaci&oacute;n</label>
+<input type="datetime-local" id="fFC">
+</div>
+<div class="field">
+<label>T&eacute;cnico Responsable</label>
+<input type="text" id="fTec" placeholder="Nombre del t&eacute;cnico">
+</div>
+<div class="field">
+<label>Tiempo de Ejecuci&oacute;n</label>
+<input type="text" id="fTiE" placeholder="Ej: 4 horas">
+</div>
+</div>
+</div>
+
+<!-- ============ S6: OBSERVACIONES Y NOTAS ============ -->
+<div class="section">
+<div class="sec-header" onclick="toggleSec(this)">
+<span class="icon">&#128206;</span>
+<h2>Observaciones y Notas</h2>
+<span class="chev">&#9660;</span>
+</div>
+<div class="sec-content">
+<div class="field full">
+<label>Observaciones</label>
+<textarea id="fObs" rows="2" placeholder="Observaciones adicionales..."></textarea>
+</div>
+<div class="field full">
+<label>Notas</label>
+<textarea id="fNot" rows="2" placeholder="Notas adicionales..."></textarea>
+</div>
+</div>
+</div>
+
+<!-- BUTTONS -->
+<div class="btn-row">
+<a id="linkCancel" href="#" class="btn btn-secondary" style="text-decoration:none;text-align:center">Cancelar</a>
+<button class="btn btn-secondary" onclick="limpiar()">Limpiar</button>
+<button class="btn btn-primary" id="btnGuardar" onclick="guardar()">&#128190; Guardar Orden</button>
+</div>
+</div>
+
+<!-- SUCCESS PANEL -->
+<div class="success-panel" id="successPanel">
+<div class="check">&#9989;</div>
+<h2>Orden de Trabajo Creada</h2>
+<p id="successMsg">Orden #0 creada exitosamente</p>
+<p id="successSub" style="color:#605e5c;font-size:13px;margin-bottom:20px"></p>
+<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+<a id="linkVer" href="#" class="btn btn-primary" style="text-decoration:none;text-align:center">Ver Orden</a>
+<a href="" class="btn btn-secondary" id="linkNueva" style="text-decoration:none;text-align:center">Crear Otra</a>
+<a id="linkIrLista" href="#" class="btn btn-secondary" style="text-decoration:none;text-align:center">Ir a Lista</a>
+</div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="overlay" id="overlay"><div class="spinner"></div></div>
+
+<script>
+/* ================================================================
+   CONFIGURACION + MSAL AUTHENTICATION
+   ================================================================ */
+var SITE = 'https://ceprd.sharepoint.com/sites/OPERACIONESDIPSA33';
+var OT_LIST_TITLE = 'Ordenes de Trabajo';
+var SVC_LIST_GUID = '9e3c3545-22e4-4e68-8d9f-5a0eb3d9803f';
+var MAT_LIST_TITLE = 'Materiales Repuestos OT';
+var EQ_LIST_TITLE  = 'Equipos Necesarios OT';
+var SVCS = []; // loaded dynamically
+var URL_PARAMS = new URLSearchParams(window.location.search);
+var EDIT_ID = parseInt(URL_PARAMS.get('ID') || URL_PARAMS.get('id') || '0', 10) || 0;
+var IS_EDIT_MODE = EDIT_ID > 0;
+
+/* MSAL.js Authentication */
+var msalConfig = {
+  auth: {
+    clientId: 'ebedead8-7288-4404-b7fc-bf22a0959a01',
+    authority: 'https://login.microsoftonline.com/6b3864ba-3389-48e6-bcec-1d1db22062af',
+    redirectUri: window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/')
+  },
+  cache: {
+    cacheLocation: 'sessionStorage',
+    storeAuthStateInCookie: false
+  }
+};
+var msalInstance = new msal.PublicClientApplication(msalConfig);
+var SP_SCOPES = ['https://ceprd.sharepoint.com/AllSites.Write'];
+
+function getAccessToken() {
+  var accounts = msalInstance.getAllAccounts();
+  if (!accounts.length) {
+    return msalInstance.loginPopup({ scopes: SP_SCOPES }).then(function(r) { return r.accessToken; });
+  }
+  return msalInstance.acquireTokenSilent({
+    scopes: SP_SCOPES,
+    account: accounts[0]
+  }).then(function(r) {
+    return r.accessToken;
+  }).catch(function() {
+    return msalInstance.acquireTokenSilent({
+      scopes: SP_SCOPES,
+      account: accounts[0],
+      forceRefresh: true
+    }).catch(function() {
+      return msalInstance.loginPopup({ scopes: SP_SCOPES }).then(function(r) { return r.accessToken; });
+    });
+  });
+}
+
+function doLogin() {
+  msalInstance.loginPopup({ scopes: SP_SCOPES }).then(function(r) {
+    document.getElementById('authStatus').textContent = 'Autenticado como ' + r.account.username;
+    initForm();
+  }).catch(function(e) {
+    document.getElementById('authStatus').textContent = 'Error: ' + e.message;
+  });
+}
+
+function updateModeUI() {
+  var pill = document.getElementById('modePill');
+  var btn = document.getElementById('btnGuardar');
+  if (IS_EDIT_MODE) {
+    pill.textContent = 'Modo: Editar OT #' + EDIT_ID;
+    btn.innerHTML = '&#9998; Actualizar Orden';
+  } else {
+    pill.textContent = 'Modo: Crear';
+    btn.innerHTML = '&#128190; Guardar Orden';
+  }
+}
+
+/* Self-referencing link for "Crear Otra" */
+document.getElementById('linkNueva').href = window.location.href;
+
+/* ================================================================
+   HELPERS
+   ================================================================ */
+function toggleSec(hdr) {
+  hdr.classList.toggle('collapsed');
+  hdr.nextElementSibling.classList.toggle('hidden');
+}
+
+function showToast(msg, type, dur) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(function(){ t.classList.remove('show') }, dur || 3000);
+}
+
+function showLoading(v) {
+  document.getElementById('overlay').classList.toggle('show', v);
+}
+
+function spFetch(url, opts) {
+  opts = opts || {};
+  if (!opts.headers) opts.headers = {};
+  if (!opts.headers['Accept']) opts.headers['Accept'] = 'application/json;odata=verbose';
+  return getAccessToken().then(function(token) {
+    opts.headers['Authorization'] = 'Bearer ' + token;
+    return fetch(url, opts);
+  }).then(function(r) {
+    if (!r.ok) return r.text().then(function(t){ throw new Error('HTTP ' + r.status + ': ' + t.substring(0,300)) });
+    return r.text().then(function(t) {
+      if (!t) return {};
+      try {
+        return JSON.parse(t);
+      } catch (_e) {
+        return {};
+      }
+    });
+  });
+}
+
+function getDigest() {
+  return spFetch(SITE + '/_api/contextinfo', {
+    method: 'POST',
+    headers: { 'Accept': 'application/json;odata=verbose', 'Content-Type': 'application/json;odata=verbose' }
+  }).then(function(d) { return d.d.GetContextWebInformation.FormDigestValue });
+}
+
+function toInputDateTime(iso) {
+  if (!iso) return '';
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+}
+
+function setCheckedByValues(selector, values) {
+  var map = {};
+  (values || []).forEach(function(v) { map[v] = true; });
+  document.querySelectorAll(selector).forEach(function(cb) {
+    cb.checked = !!map[cb.value];
+  });
+}
+
+function addMatRowWithData(row) {
+  addMatRow();
+  var tbody = document.getElementById('tbodyMat');
+  var tr = tbody.lastElementChild;
+  if (!tr) return;
+  var inputs = tr.querySelectorAll('input');
+  inputs[0].value = row.Codigo || '';
+  inputs[1].value = row.Cantidad || 1;
+  inputs[2].value = row.Descripcion || '';
+  inputs[3].value = row.Precio || '';
+  inputs[4].value = row.Proveedor || '';
+}
+
+function addEqRowWithData(row) {
+  addEqRow();
+  var tbody = document.getElementById('tbodyEq');
+  var tr = tbody.lastElementChild;
+  if (!tr) return;
+  var inputs = tr.querySelectorAll('input');
+  inputs[0].value = row.Codigo || '';
+  inputs[1].value = row.Cantidad || 1;
+  inputs[2].value = row.Descripcion || '';
+  inputs[3].value = row.Precio || '';
+  inputs[4].value = row.Proveedor || '';
+}
+
+/* ================================================================
+   LOAD FIELD CHOICES FROM SHAREPOINT
+   ================================================================ */
+function escapeHtml(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function populateSelect(id, choices, placeholder) {
+  var sel = document.getElementById(id);
+  if (!sel) return;
+  sel.innerHTML = '<option value="">' + placeholder + '</option>';
+  choices.forEach(function(c) {
+    var o = document.createElement('option');
+    o.value = c;
+    o.textContent = c;
+    sel.appendChild(o);
+  });
+}
+
+function populateRadioGroup(containerId, name, choices) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+  choices.forEach(function(c) {
+    var lbl = document.createElement('label');
+    lbl.innerHTML = '<input type="radio" name="' + escapeHtml(name) + '" value="' + escapeHtml(c) + '"> ' + escapeHtml(c);
+    container.appendChild(lbl);
+  });
+}
+
+function populateCheckboxGroup(containerId, choices) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+  choices.forEach(function(c) {
+    var lbl = document.createElement('label');
+    lbl.innerHTML = '<input type="checkbox" value="' + escapeHtml(c) + '"> ' + escapeHtml(c);
+    container.appendChild(lbl);
+  });
+}
+
+function loadFieldChoices() {
+  var fields = [
+    'Lugar_x0020_del_x0020_mantenimie',
+    'TipoMantenimiento',
+    'TipoTrabajo',
+    'Clasificacion',
+    'ManoDeObraSelect'
+  ];
+  var filter = fields.map(function(f) { return "InternalName eq '" + f + "'" }).join(' or ');
+  var url = SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/fields?$filter=" + encodeURIComponent(filter) + "&$select=InternalName,Choices,TypeAsString";
+
+  return spFetch(url).then(function(data) {
+    var results = (data.d && data.d.results) || [];
+    results.forEach(function(field) {
+      var choices = (field.Choices && field.Choices.results) || [];
+      switch (field.InternalName) {
+        case 'Lugar_x0020_del_x0020_mantenimie':
+          populateSelect('fLugar', choices, '-- Seleccione ubicación (' + choices.length + ') --');
+          break;
+        case 'TipoMantenimiento':
+          populateRadioGroup('tMantGroup', 'tMant', choices);
+          break;
+        case 'TipoTrabajo':
+          populateCheckboxGroup('tTrab', choices);
+          break;
+        case 'Clasificacion':
+          populateSelect('fClasif', choices, '-- Seleccione --');
+          break;
+        case 'ManoDeObraSelect':
+          populateCheckboxGroup('manoObra', choices);
+          break;
+      }
+    });
+  }).catch(function(e) {
+    showToast('Error cargando opciones: ' + e.message, 'error', 5000);
+  });
+}
+
+/* ================================================================
+   UPDATE NAVIGATION LINKS
+   ================================================================ */
+function updateNavLinks() {
+  var listUrl = SITE + '/Lists/Ordenes%20de%20Trabajo/AllItems.aspx';
+  var links = {
+    'navHome': SITE + '/SitePages/Home.aspx',
+    'navLista': listUrl,
+    'navPortal': SITE + '/SitePages/Dashboard-Operaciones.aspx',
+    'linkCancel': listUrl,
+    'linkIrLista': listUrl
+  };
+  for (var id in links) {
+    var el = document.getElementById(id);
+    if (el) el.href = links[id];
+  }
+}
+
+/* ================================================================
+   LOAD SERVICES FROM SHAREPOINT
+   ================================================================ */
+function loadServices() {
+  var url = SITE + "/_api/web/lists(guid'" + SVC_LIST_GUID + "')/items?$select=Id,Title,Cliente,FechaCreacion,Estado&$filter=Estado eq 'Activo'&$orderby=Id desc&$top=200";
+  return spFetch(url).then(function(data) {
+    SVCS = data.d.results;
+    populateServiceDropdown();
+    showToast(SVCS.length + ' servicios cargados', 'info', 2000);
+    return SVCS;
+  }).catch(function(e) {
+    showToast('Error cargando servicios: ' + e.message, 'error', 5000);
+    var sel = document.getElementById('fServ');
+    sel.innerHTML = '<option value="">-- Error cargando servicios --</option>';
+    throw e;
+  });
+}
+
+function populateServiceDropdown() {
+  var sel = document.getElementById('fServ');
+  sel.innerHTML = '<option value="">-- Seleccione un servicio (' + SVCS.length + ' activos) --</option>';
+  SVCS.forEach(function(s) {
+    var o = document.createElement('option');
+    o.value = s.Id;
+    o.textContent = s.Title;
+    sel.appendChild(o);
+  });
+}
+
+function loadExistingOrder() {
+  if (!IS_EDIT_MODE) return Promise.resolve();
+  return spFetch(
+    SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + EDIT_ID + ")?$select=ID,Title,NumeroServicioId,CodigoEquipo,NombreEquipo,Lugar_x0020_del_x0020_mantenimie,TipoMantenimiento,TipoTrabajo,TrabajoSolicitado,TrabajoEjecutado,Observaciones,TecnicoResponsable,TiempoEjecucion,Notas,Clasificacion,FechaInicioMantenimiento,FechaCulminacion,FechaOrden"
+  ).then(function(d) {
+    var item = d.d;
+    if (item.NumeroServicioId) {
+      document.getElementById('fServ').value = String(item.NumeroServicioId);
+      onServChange();
+    }
+    document.getElementById('fCodEq').value = item.CodigoEquipo || '';
+    document.getElementById('fNomEq').value = item.NombreEquipo || '';
+    document.getElementById('fLugar').value = item.Lugar_x0020_del_x0020_mantenimie || '';
+    document.getElementById('fTSol').value = item.TrabajoSolicitado || '';
+    document.getElementById('fTEje').value = item.TrabajoEjecutado || '';
+    document.getElementById('fObs').value = item.Observaciones || '';
+    document.getElementById('fTec').value = item.TecnicoResponsable || '';
+    document.getElementById('fTiE').value = item.TiempoEjecucion || '';
+    document.getElementById('fNot').value = item.Notas || '';
+    document.getElementById('fClasif').value = item.Clasificacion || '';
+    document.getElementById('fFI').value = toInputDateTime(item.FechaInicioMantenimiento);
+    document.getElementById('fFC').value = toInputDateTime(item.FechaCulminacion);
+    document.getElementById('fFechaOrden').value = toInputDateTime(item.FechaOrden);
+
+    if (item.TipoMantenimiento) {
+      var radio = document.querySelector('input[name=tMant][value="' + item.TipoMantenimiento + '"]');
+      if (radio) radio.checked = true;
+    }
+
+    var tipoTrabajo = item.TipoTrabajo && item.TipoTrabajo.results ? item.TipoTrabajo.results : [];
+    setCheckedByValues('#tTrab input[type=checkbox]', tipoTrabajo);
+
+    document.getElementById('successSub').textContent = 'Modo edición de Orden #' + EDIT_ID;
+  });
+}
+
+function buscarYCargarOt() {
+  var idVal = (document.getElementById('loadById').value || '').trim();
+  var noOrdenVal = (document.getElementById('loadByNoOrden').value || '').trim();
+
+  if (!idVal && !noOrdenVal) {
+    showToast('Ingrese ID o No. Orden para cargar', 'error', 3000);
+    return;
+  }
+
+  showLoading(true);
+
+  var p;
+  if (idVal) {
+    p = Promise.resolve(parseInt(idVal, 10));
+  } else {
+    p = spFetch(
+      SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items?$select=ID,NoOrden&$filter=NoOrden eq " + encodeURIComponent(noOrdenVal) + "&$top=1"
+    ).then(function(d) {
+      var rows = d.d.results || [];
+      if (!rows.length) throw new Error('No se encontró OT con No. Orden ' + noOrdenVal);
+      return rows[0].ID;
+    });
+  }
+
+  p.then(function(foundId) {
+    if (!foundId || isNaN(foundId)) throw new Error('ID inválido');
+    EDIT_ID = foundId;
+    IS_EDIT_MODE = true;
+    updateModeUI();
+
+    var url = new URL(window.location.href);
+    url.searchParams.set('ID', String(EDIT_ID));
+    window.history.replaceState({}, '', url.toString());
+
+    return Promise.all([loadFieldChoices(), loadServices()])
+      .then(loadExistingOrder)
+      .then(loadExistingSubItems);
+  }).then(function() {
+    showLoading(false);
+    showToast('OT #' + EDIT_ID + ' cargada para edición', 'success', 3000);
+  }).catch(function(e) {
+    showLoading(false);
+    showToast('Error cargando OT: ' + e.message, 'error', 6000);
+  });
+}
+
+function nuevoModoCrear() {
+  IS_EDIT_MODE = false;
+  EDIT_ID = 0;
+  updateModeUI();
+
+  var url = new URL(window.location.href);
+  url.searchParams.delete('ID');
+  window.history.replaceState({}, '', url.toString());
+
+  limpiar();
+  document.getElementById('tbodyMat').innerHTML = '';
+  document.getElementById('tbodyEq').innerHTML = '';
+  addMatRow();
+  addEqRow();
+  showToast('Formulario en modo crear', 'info', 2500);
+}
+
+function loadExistingSubItems() {
+  if (!IS_EDIT_MODE) return Promise.resolve();
+  var matUrl = SITE + "/_api/web/lists/getbytitle('" + MAT_LIST_TITLE + "')/items?$select=ID,Codigo,Cantidad,Descripcion,Precio,Proveedor&$filter=OrdenTrabajoId eq " + EDIT_ID + "&$orderby=ID asc";
+  var eqUrl = SITE + "/_api/web/lists/getbytitle('" + EQ_LIST_TITLE + "')/items?$select=ID,Codigo,Cantidad,Descripcion,Precio,Proveedor&$filter=OrdenTrabajoId eq " + EDIT_ID + "&$orderby=ID asc";
+
+  return Promise.all([spFetch(matUrl), spFetch(eqUrl)]).then(function(results) {
+    var mats = results[0].d.results || [];
+    var eqs = results[1].d.results || [];
+
+    document.getElementById('tbodyMat').innerHTML = '';
+    document.getElementById('tbodyEq').innerHTML = '';
+
+    mats.forEach(addMatRowWithData);
+    eqs.forEach(addEqRowWithData);
+
+    if (!mats.length) addMatRow();
+    if (!eqs.length) addEqRow();
+  });
+}
+
+function deleteExistingSubItems(listTitle, parentId, digest) {
+  return spFetch(
+    SITE + "/_api/web/lists/getbytitle('" + listTitle + "')/items?$select=ID&$filter=OrdenTrabajoId eq " + parentId
+  ).then(function(d) {
+    var rows = d.d.results || [];
+    if (!rows.length) return Promise.resolve();
+    return Promise.all(rows.map(function(row) {
+      return spFetch(SITE + "/_api/web/lists/getbytitle('" + listTitle + "')/items(" + row.ID + ")", {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json;odata=verbose',
+          'Content-Type': 'application/json;odata=verbose',
+          'X-RequestDigest': digest,
+          'IF-MATCH': '*',
+          'X-HTTP-Method': 'DELETE'
+        }
+      });
+    }));
+  });
+}
+
+/* ================================================================
+   PARSE SERVICE DATA
+   ================================================================ */
+function extractNombre(c) {
+  if (!c) return '';
+  var p = c.split('Nombre:');
+  if (p.length < 2) return '';
+  var block = p[1].split('Localización:')[0] || p[1].split('Localizaci\u00f3n:')[0] || '';
+  var lines = block.split('\n').filter(function(l){ return l.trim() });
+  return lines.length ? lines[0].trim().replace(/<[^>]+>/g, '') : '';
+}
+
+function extractEmail(c) {
+  if (!c) return '';
+  var m = c.match(/<([^>]+@[^>]+)>/);
+  return m ? m[1] : '';
+}
+
+function extractUbi(c) {
+  if (!c) return '';
+  var m = c.match(/Localizaci[oó]n:\s*\n?\s*([^\n]+)/i);
+  return m ? m[1].trim() : '';
+}
+
+function extractTelefono(c) {
+  if (!c) return '';
+  var m = c.match(/Teléfono:\s*\n?\s*([^\n]+)/i);
+  return m ? m[1].trim() : '';
+}
+
+/* ================================================================
+   ON SERVICE CHANGE - Autofill fields
+   ================================================================ */
+function onServChange() {
+  var id = document.getElementById('fServ').value;
+  var card = document.getElementById('svcCard');
+  if (!id) {
+    card.classList.remove('show');
+    document.getElementById('fCli').value = '';
+    document.getElementById('fFechaSol').value = '';
+    document.getElementById('fSolPor').value = '';
+    return;
+  }
+  var svc = SVCS.find(function(s){ return s.Id == id });
+  if (!svc) return;
+
+  var fecha = svc.FechaCreacion ? new Date(svc.FechaCreacion).toLocaleDateString('es-DO', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'N/A';
+  var nom = extractNombre(svc.Cliente);
+  var email = extractEmail(svc.Cliente);
+  var ubi = extractUbi(svc.Cliente);
+
+  /* Show info card */
+  document.getElementById('iF').textContent = fecha;
+  document.getElementById('iS').textContent = (nom || 'No disponible') + (email ? ' (' + email + ')' : '');
+  document.getElementById('iU').textContent = ubi || 'No disponible';
+  /* Extract description from title (after -->) */
+  var title = svc.Title || '';
+  var desc = '';
+  if (title.indexOf('-->') > -1) {
+    desc = title.split('-->')[1].trim();
+    /* Remove trailing colon or spaces */
+    desc = desc.replace(/\s*:\s*$/, '').trim();
+  }
+  document.getElementById('iA').textContent = desc || title;
+  card.classList.add('show');
+
+  /* Auto-fill fields */
+  document.getElementById('fCli').value = 'DIPSA';
+  document.getElementById('fFechaSol').value = fecha;
+  document.getElementById('fSolPor').value = nom || '';
+
+  /* Pre-select location */
+  if (ubi) {
+    var ls = document.getElementById('fLugar');
+    for (var i = 0; i < ls.options.length; i++) {
+      if (ls.options[i].value.toLowerCase() === ubi.toLowerCase()) {
+        ls.selectedIndex = i;
+        break;
+      }
+    }
+  }
+
+  /* Auto-fill trabajo solicitado */
+  if (desc) {
+    document.getElementById('fTSol').value = desc;
+  }
+
+  /* Set fecha de orden to now */
+  var now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('fFechaOrden').value = now.toISOString().slice(0, 16);
+
+  /* Update progress */
+  document.getElementById('pd1').classList.add('done');
+  document.getElementById('pd2').classList.add('active');
+  document.getElementById('pd3').classList.add('active');
+}
+
+/* ================================================================
+   SUB-LIST TABLE MANAGEMENT
+   ================================================================ */
+function addMatRow() {
+  var tbody = document.getElementById('tbodyMat');
+  var tr = document.createElement('tr');
+  tr.innerHTML = '<td><input type="text" placeholder="C\u00F3digo"></td><td><input type="number" min="0" step="1" value="1"></td><td><input type="text" placeholder="Descripci\u00F3n"></td><td><input type="number" min="0" step="0.01" placeholder="0.00"></td><td><input type="text" placeholder="Proveedor"></td><td><button class="btn-del" onclick="this.closest(\'tr\').remove()" title="Eliminar">&times;</button></td>';
+  tbody.appendChild(tr);
+}
+
+function addEqRow() {
+  var tbody = document.getElementById('tbodyEq');
+  var tr = document.createElement('tr');
+  tr.innerHTML = '<td><input type="text" placeholder="C\u00F3digo"></td><td><input type="number" min="0" step="1" value="1"></td><td><input type="text" placeholder="Descripci\u00F3n"></td><td><input type="number" min="0" step="0.01" placeholder="0.00"></td><td><input type="text" placeholder="Proveedor"></td><td><button class="btn-del" onclick="this.closest(\'tr\').remove()" title="Eliminar">&times;</button></td>';
+  tbody.appendChild(tr);
+}
+
+function getTableData(tbodyId) {
+  var rows = [];
+  document.querySelectorAll('#' + tbodyId + ' tr').forEach(function(tr) {
+    var inputs = tr.querySelectorAll('input');
+    var codigo = inputs[0].value.trim();
+    var cantidad = parseFloat(inputs[1].value) || 0;
+    var desc = inputs[2].value.trim();
+    var precio = parseFloat(inputs[3].value) || 0;
+    var prov = inputs[4].value.trim();
+    if (desc || codigo) {
+      rows.push({ Codigo: codigo, Cantidad: cantidad, Descripcion: desc, Precio: precio, Proveedor: prov, Title: desc || codigo });
+    }
+  });
+  return rows;
+}
+
+/* ================================================================
+   VALIDATION
+   ================================================================ */
+function validate() {
+  var ok = true;
+  var s = document.getElementById('fServ');
+  if (!s.value) { s.classList.add('error'); ok = false } else { s.classList.remove('error') }
+  var t = document.getElementById('fTSol');
+  if (!t.value.trim()) { t.classList.add('error'); ok = false } else { t.classList.remove('error') }
+  if (!ok) showToast('Complete los campos marcados con *', 'error', 3000);
+  return ok;
+}
+
+/* ================================================================
+   GUARDAR - Create OT + sub-list items
+   ================================================================ */
+function guardar() {
+  if (!validate()) return;
+  showLoading(true);
+  document.getElementById('btnGuardar').disabled = true;
+
+  /* Collect tipo trabajo (multi-choice) */
+  var tt = [];
+  document.querySelectorAll('#tTrab input:checked').forEach(function(c) { tt.push(c.value) });
+
+  /* Collect mano de obra (multi-choice) */
+  var mo = [];
+  document.querySelectorAll('#manoObra input:checked').forEach(function(c) { mo.push(c.value) });
+
+  /* Tipo mantenimiento */
+  var mr = document.querySelector('input[name=tMant]:checked');
+
+  /* Build OT data */
+  var data = {
+    NumeroServicioId: parseInt(document.getElementById('fServ').value) || null,
+    CodigoEquipo: document.getElementById('fCodEq').value.trim() || null,
+    NombreEquipo: document.getElementById('fNomEq').value.trim() || null,
+    Lugar_x0020_del_x0020_mantenimie: document.getElementById('fLugar').value || null,
+    TipoMantenimiento: mr ? mr.value : null,
+    TrabajoSolicitado: document.getElementById('fTSol').value.trim(),
+    TrabajoEjecutado: document.getElementById('fTEje').value.trim() || null,
+    Observaciones: document.getElementById('fObs').value.trim() || null,
+    TecnicoResponsable: document.getElementById('fTec').value.trim() || null,
+    TiempoEjecucion: document.getElementById('fTiE').value.trim() || null,
+    Notas: document.getElementById('fNot').value.trim() || null,
+    Clasificacion: document.getElementById('fClasif').value || null
+  };
+
+  /* Multi-choice fields */
+  if (tt.length) data.TipoTrabajo = { results: tt };
+  if (mo.length) data.ManoDeObraSelect = { results: mo };
+
+  /* DateTime fields */
+  var fi = document.getElementById('fFI').value;
+  if (fi) data.FechaInicioMantenimiento = new Date(fi).toISOString();
+  var fc = document.getElementById('fFC').value;
+  if (fc) data.FechaCulminacion = new Date(fc).toISOString();
+  var fo = document.getElementById('fFechaOrden').value;
+  if (fo) data.FechaOrden = new Date(fo).toISOString();
+
+  /* Remove nulls */
+  for (var k in data) { if (data[k] === null) delete data[k] }
+
+  /* Get sub-list data */
+  var materiales = getTableData('tbodyMat');
+  var equipos = getTableData('tbodyEq');
+
+  var digest, targetId;
+
+  getDigest().then(function(d) {
+    digest = d;
+    /* Get entity type */
+    return spFetch(SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')?$select=ListItemEntityTypeFullName");
+  }).then(function(d) {
+    var et = d.d.ListItemEntityTypeFullName;
+    data.__metadata = { type: et };
+
+    if (IS_EDIT_MODE) {
+      targetId = EDIT_ID;
+      return spFetch(SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + EDIT_ID + ")", {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json;odata=verbose',
+          'Content-Type': 'application/json;odata=verbose',
+          'X-RequestDigest': digest,
+          'IF-MATCH': '*',
+          'X-HTTP-Method': 'MERGE'
+        },
+        body: JSON.stringify(data)
+      });
+    }
+
+    return spFetch(SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items", {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json;odata=verbose',
+        'Content-Type': 'application/json;odata=verbose',
+        'X-RequestDigest': digest
+      },
+      body: JSON.stringify(data)
+    });
+  }).then(function(d) {
+    if (!IS_EDIT_MODE) targetId = d.d.ID;
+
+    return Promise.all([
+      deleteExistingSubItems(MAT_LIST_TITLE, targetId, digest),
+      deleteExistingSubItems(EQ_LIST_TITLE, targetId, digest)
+    ]);
+  }).then(function() {
+    /* Now create sub-list items in parallel */
+    var promises = [];
+
+    if (materiales.length) {
+      /* Get Materiales entity type */
+      var pMat = spFetch(SITE + "/_api/web/lists/getbytitle('" + MAT_LIST_TITLE + "')?$select=ListItemEntityTypeFullName")
+        .then(function(d) {
+          var et = d.d.ListItemEntityTypeFullName;
+          return Promise.all(materiales.map(function(m) {
+            m.__metadata = { type: et };
+            m.OrdenTrabajoId = targetId;
+            return spFetch(SITE + "/_api/web/lists/getbytitle('" + MAT_LIST_TITLE + "')/items", {
+              method: 'POST',
+              headers: {
+                'Accept': 'application/json;odata=verbose',
+                'Content-Type': 'application/json;odata=verbose',
+                'X-RequestDigest': digest
+              },
+              body: JSON.stringify(m)
+            });
+          }));
+        });
+      promises.push(pMat);
+    }
+
+    if (equipos.length) {
+      var pEq = spFetch(SITE + "/_api/web/lists/getbytitle('" + EQ_LIST_TITLE + "')?$select=ListItemEntityTypeFullName")
+        .then(function(d) {
+          var et = d.d.ListItemEntityTypeFullName;
+          return Promise.all(equipos.map(function(eq) {
+            eq.__metadata = { type: et };
+            eq.OrdenTrabajoId = targetId;
+            return spFetch(SITE + "/_api/web/lists/getbytitle('" + EQ_LIST_TITLE + "')/items", {
+              method: 'POST',
+              headers: {
+                'Accept': 'application/json;odata=verbose',
+                'Content-Type': 'application/json;odata=verbose',
+                'X-RequestDigest': digest
+              },
+              body: JSON.stringify(eq)
+            });
+          }));
+        });
+      promises.push(pEq);
+    }
+
+    return Promise.all(promises);
+  }).then(function() {
+    showLoading(false);
+    document.getElementById('formBody').style.display = 'none';
+    document.getElementById('successMsg').textContent = IS_EDIT_MODE
+      ? ('Orden de Trabajo #' + targetId + ' actualizada exitosamente')
+      : ('Orden de Trabajo #' + targetId + ' creada exitosamente');
+    var subMsg = '';
+    if (materiales.length) subMsg += materiales.length + ' materiales';
+    if (equipos.length) subMsg += (subMsg ? ' y ' : '') + equipos.length + ' equipos';
+    if (subMsg) subMsg = 'Se registraron ' + subMsg + ' asociados.';
+    document.getElementById('successSub').textContent = subMsg;
+    document.getElementById('linkVer').href = SITE + '/Lists/Ordenes%20de%20Trabajo/DispForm.aspx?ID=' + targetId;
+    document.getElementById('successPanel').classList.add('show');
+    document.querySelectorAll('.progress .dot').forEach(function(d){ d.classList.add('done') });
+  }).catch(function(e) {
+    showLoading(false);
+    showToast('Error: ' + e.message, 'error', 8000);
+    document.getElementById('btnGuardar').disabled = false;
+  });
+}
+
+/* ================================================================
+   HELPERS
+   ================================================================ */
+function limpiar() {
+  if (!confirm('\u00BFLimpiar todos los campos?')) return;
+  document.querySelectorAll('input:not([type=checkbox]):not([type=radio]),select,textarea').forEach(function(el) {
+    if (!el.disabled) el.value = '';
+  });
+  document.querySelectorAll('input[type=checkbox],input[type=radio]').forEach(function(c) { c.checked = false });
+  document.getElementById('svcCard').classList.remove('show');
+  document.querySelectorAll('.progress .dot').forEach(function(d) { d.classList.remove('done','active') });
+  document.getElementById('pd1').classList.add('active');
+  document.getElementById('fServ').selectedIndex = 0;
+  document.getElementById('tbodyMat').innerHTML = '';
+  document.getElementById('tbodyEq').innerHTML = '';
+}
+
+/* ================================================================
+   INIT - Authenticate then load data
+   ================================================================ */
+function initForm() {
+  document.getElementById('authOverlay').style.display = 'none';
+  updateNavLinks();
+  updateModeUI();
+
+  if (IS_EDIT_MODE) {
+    showToast('Cargando orden #' + EDIT_ID + ' para edición...', 'info', 3000);
+    Promise.all([loadFieldChoices(), loadServices()])
+      .then(loadExistingOrder)
+      .then(loadExistingSubItems)
+      .catch(function(e) { showToast('Error cargando orden: ' + e.message, 'error', 6000); });
+  } else {
+    loadFieldChoices();
+    loadServices();
+    addMatRow();
+    addEqRow();
+  }
+}
+
+/* MSAL initialization */
+msalInstance.initialize().then(function() {
+  return msalInstance.handleRedirectPromise();
+}).then(function() {
+  var accounts = msalInstance.getAllAccounts();
+  if (accounts.length > 0) {
+    document.getElementById('authStatus').textContent = 'Autenticado como ' + accounts[0].username;
+    return getAccessToken().then(function() { initForm(); });
+  } else {
+    document.getElementById('authStatus').textContent = 'Debe iniciar sesión para continuar';
+    document.getElementById('btnLogin').style.display = 'inline-block';
+  }
+}).catch(function(e) {
+  document.getElementById('authStatus').textContent = 'Error de autenticación: ' + e.message;
+  document.getElementById('btnLogin').style.display = 'inline-block';
+});
+</script>
+</body>
+</html>
