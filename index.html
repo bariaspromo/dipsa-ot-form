@@ -648,11 +648,34 @@ function loadServices() {
 
 function populateServiceDropdown() {
   var sel = document.getElementById('fServ');
-  sel.innerHTML = '<option value="">-- Seleccione un servicio (' + SVCS.length + ' activos) --</option>';
+  sel.innerHTML = '';
+  /* Deduplicar por Title exacto (quedarse con el de mayor Id) */
+  var uniqueMap = {};
   SVCS.forEach(function(s) {
+    var key = (s.Title || '').trim();
+    if (!uniqueMap[key] || s.Id > uniqueMap[key].Id) uniqueMap[key] = s;
+  });
+  var unique = Object.values(uniqueMap).sort(function(a,b){ return b.Id - a.Id; });
+  sel.innerHTML = '<option value="">-- Seleccione servicio (' + unique.length + ') --</option>';
+  unique.forEach(function(s) {
+    var t = s.Title || '';
+    /* Extraer numero de servicio y descripcion corta */
+    var m = t.match(/^(\d+)\s*(?:Asignado\s*-->\s*)?(.*)$/i);
+    var num = m ? m[1] : '';
+    var desc = m ? m[2] : t;
+    /* Extraer localizacion del cliente */
+    var loc = '';
+    if (s.Cliente) {
+      var lm = s.Cliente.match(/Localizaci[oó]n:\s*\n?\s*(.+)/i);
+      if (lm) loc = lm[1].trim();
+    }
+    desc = desc.split(':')[0].trim(); /* solo hasta el primer : */
+    if (desc.length > 50) desc = desc.substring(0, 50) + '...';
+    var label = num ? (num + ' - ' + desc) : desc;
+    if (loc) label += ' [' + loc + ']';
     var o = document.createElement('option');
     o.value = s.Id;
-    o.textContent = s.Title;
+    o.textContent = label;
     sel.appendChild(o);
   });
 }
