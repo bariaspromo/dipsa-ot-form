@@ -223,10 +223,8 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://cdn.j
 </div>
 </div>
 <div class="field">
-<label>Clasificaci&oacute;n</label>
-<select id="fClasif">
-<option value="">-- Cargando... --</option>
-</select>
+<label>Clasificaci&oacute;n <span class="auto-tag">Planner</span></label>
+<input type="text" id="fClasif" readonly style="background:#f5f5f5;cursor:default;" placeholder="Se auto-rellena del servicio...">
 </div>
 <div class="field">
 <label>Fecha de la Orden</label>
@@ -605,7 +603,7 @@ function loadFieldChoices() {
           populateCheckboxGroup('tTrab', choices);
           break;
         case 'Clasificacion':
-          populateSelect('fClasif', choices, '-- Seleccione --');
+          /* Clasificacion is now auto-filled from Planner - no dropdown needed */
           break;
         case 'ManoDeObraSelect':
           populateCheckboxGroup('manoObra', choices);
@@ -967,6 +965,17 @@ function onServChange() {
     }
   }
   document.getElementById('fTSol').value = trabajo || desc;
+
+  /* Auto-fill clasificacion from Planner's Tipo de Solicitud */
+  if (fullDesc) {
+    var mTipo = fullDesc.match(/Tipo de Solicitud:\s*\n*([\s\S]*?)(?=\n\s*Asunto|\s*$)/i);
+    if (mTipo) {
+      var tipo = mTipo[1].trim().replace(/\s+/g, ' ');
+      /* Remove common prefix */
+      tipo = tipo.replace(/^DIPSA\s*>\s*Ingenier[ií]a\s*&\s*Mantenimiento\s*>\s*/i, '');
+      document.getElementById('fClasif').value = tipo;
+    }
+  }
 
   /* Set fecha de orden to now */
   var now = new Date();
