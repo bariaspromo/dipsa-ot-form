@@ -176,14 +176,7 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 <label>No. Seguimiento <span class="auto-tag">Auto</span></label>
 <input type="text" id="fSeg" disabled placeholder="Asignado por flujo autom&aacute;tico">
 </div>
-<div class="field">
-<label>Fecha de Solicitud <span class="auto-tag">Auto</span></label>
-<input type="text" id="fFechaSol" disabled placeholder="Se rellena del servicio">
-</div>
-<div class="field">
-<label>Solicitado Por <span class="auto-tag">Auto</span></label>
-<input type="text" id="fSolPor" disabled placeholder="Se rellena del servicio">
-</div>
+
 </div>
 </div>
 
@@ -903,8 +896,7 @@ function onServChange() {
   if (!id) {
     card.classList.remove('show');
     document.getElementById('fCli').value = '';
-    document.getElementById('fFechaSol').value = '';
-    document.getElementById('fSolPor').value = '';
+
     return;
   }
   var svc = SVCS.find(function(s){ return s.Id == id });
@@ -932,8 +924,7 @@ function onServChange() {
 
   /* Auto-fill fields */
   document.getElementById('fCli').value = 'DIPSA';
-  document.getElementById('fFechaSol').value = fecha;
-  document.getElementById('fSolPor').value = nom || '';
+
 
   /* Pre-select location */
   if (ubi) {
