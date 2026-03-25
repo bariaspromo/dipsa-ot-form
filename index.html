@@ -197,11 +197,9 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 <input type="text" id="fNomEq" placeholder="Ej: Generador el&eacute;ctrico">
 </div>
 <div class="field">
-<label>Lugar del mantenimiento</label>
-<select id="fLugar">
-<option value="">-- Cargando ubicaciones... --</option>
-</select>
-<div class="hint">Se pre-selecciona seg&uacute;n ubicaci&oacute;n del servicio</div>
+<label>Lugar del mantenimiento <span class="auto-tag">Auto</span></label>
+<input type="text" id="fLugarDisplay" readonly style="background:#f5f5f5;cursor:default" placeholder="Se rellena del servicio">
+<input type="hidden" id="fLugar">
 </div>
 <div class="field">
 <label>Tipo de Mantenimiento</label>
@@ -587,7 +585,7 @@ function loadFieldChoices() {
       var choices = (field.Choices && field.Choices.results) || [];
       switch (field.InternalName) {
         case 'Lugar_x0020_del_x0020_mantenimie':
-          populateSelect('fLugar', choices, '-- Seleccione ubicación (' + choices.length + ') --');
+          /* Location is now auto-filled as readonly text from service */
           break;
         case 'TipoMantenimiento':
           populateRadioGroup('tMantGroup', 'tMant', choices);
@@ -718,9 +716,7 @@ function loadExistingOrder() {
     document.getElementById('fCodEq').value = item.CodigoEquipo || '';
     document.getElementById('fNomEq').value = item.NombreEquipo || '';
     document.getElementById('fLugar').value = item.Lugar_x0020_del_x0020_mantenimie || '';
-    document.getElementById('fLugar').disabled = true;
-    document.getElementById('fLugar').style.background = '#f5f5f5';
-    document.getElementById('fLugar').style.cursor = 'default';
+    document.getElementById('fLugarDisplay').value = item.Lugar_x0020_del_x0020_mantenimie || '';
     document.getElementById('fTSol').value = item.TrabajoSolicitado || '';
     document.getElementById('fTEje').value = item.TrabajoEjecutado || '';
     document.getElementById('fObs').value = item.Observaciones || '';
@@ -929,19 +925,9 @@ function onServChange() {
   document.getElementById('fCli').value = 'DIPSA';
 
 
-  /* Pre-select location and lock it */
-  var ls = document.getElementById('fLugar');
-  if (ubi) {
-    for (var i = 0; i < ls.options.length; i++) {
-      if (ls.options[i].value.toLowerCase() === ubi.toLowerCase()) {
-        ls.selectedIndex = i;
-        break;
-      }
-    }
-  }
-  ls.disabled = true;
-  ls.style.background = '#f5f5f5';
-  ls.style.cursor = 'default';
+  /* Set location from service */
+  document.getElementById('fLugar').value = ubi || '';
+  document.getElementById('fLugarDisplay').value = ubi || '';
 
   /* Auto-fill trabajo solicitado - extract Asunto + Detalles from Descripcion */
   var fullDesc = svc.Descripcion || '';
