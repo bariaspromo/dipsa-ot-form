@@ -660,13 +660,13 @@ function populateServiceDropdown() {
   unique.forEach(function(s) {
     var t = s.Title || '';
     /* Extraer numero de servicio y descripcion corta */
-    var m = t.match(/^(\d+)\s*(?:Asignado\s*-->\s*)?(.*)$/i);
+    var m = t.match(new RegExp('^(\\d+)\\s*(?:Asignado\\s*-->\\s*)?(.*)$', 'i'));
     var num = m ? m[1] : '';
     var desc = m ? m[2] : t;
     /* Extraer localizacion del cliente */
     var loc = '';
     if (s.Cliente) {
-      var lm = s.Cliente.match(/Localizaci[oó]n:\s*\n?\s*(.+)/i);
+      var lm = s.Cliente.match(/Localizaci[o\u00f3]n:\s*\n?\s*(.+)/i);
       if (lm) loc = lm[1].trim();
     }
     desc = desc.split(':')[0].trim(); /* solo hasta el primer : */
