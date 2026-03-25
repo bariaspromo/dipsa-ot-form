@@ -165,10 +165,16 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 </div>
 <div class="sec-content">
 <div class="field full">
-<label>Filtrar por ubicaci&oacute;n</label>
-<select id="fFilterUbi" onchange="populateServiceDropdown()" style="margin-bottom:8px">
+<div style="display:flex;gap:10px;margin-bottom:8px">
+<div style="flex:1"><label>Filtrar por cliente</label>
+<select id="fFilterCli" onchange="populateServiceDropdown()">
+<option value="">-- Todos los clientes --</option>
+</select></div>
+<div style="flex:1"><label>Filtrar por ubicaci&oacute;n</label>
+<select id="fFilterUbi" onchange="populateServiceDropdown()">
 <option value="">-- Todas las ubicaciones --</option>
-</select>
+</select></div>
+</div>
 <label>N&uacute;mero de Servicio <span class="req">*</span></label>
 <select id="fServ" onchange="onServChange()"><option value="">-- Cargando servicios... --</option></select>
 <div class="hint">Al seleccionar se auto-rellenan fecha, solicitante, ubicaci&oacute;n y trabajo solicitado</div>
@@ -667,6 +673,7 @@ function loadServices() {
   var url = SITE + "/_api/web/lists(guid'" + SVC_LIST_GUID + "')/items?$select=Id,Title,Cliente,FechaCreacion,Estado,Descripcion,EstadoPlanner,BucketPlanner&$filter=Estado eq 'Activo'&$orderby=Id desc&$top=200";
   return spFetch(url).then(function(data) {
     SVCS = data.d.results;
+    buildCliFilter();
     buildUbiFilter();
     populateServiceDropdown();
     showToast(SVCS.length + ' servicios cargados', 'info', 2000);
@@ -683,6 +690,31 @@ function extractSvcLocation(s) {
   if (!s || !s.Cliente) return '';
   var lm = s.Cliente.match(/Localizaci[o\u00f3]n:\s*\n?\s*(.+)/i);
   return lm ? lm[1].trim() : '';
+}
+
+function extractSvcClient(s) {
+  if (!s || !s.Cliente) return '';
+  var nm = s.Cliente.match(/Nombre:\s*\n?\s*(.+)/i);
+  return nm ? nm[1].trim().replace(/<[^>]+>/g, '') : '';
+}
+
+function buildCliFilter() {
+  var filter = document.getElementById('fFilterCli');
+  if (!filter) return;
+  var clients = {};
+  SVCS.forEach(function(s) {
+    var cli = extractSvcClient(s);
+    if (cli) clients[cli] = (clients[cli] || 0) + 1;
+  });
+  var prev = filter.value;
+  filter.innerHTML = '<option value="">-- Todos los clientes (' + SVCS.length + ') --</option>';
+  Object.keys(clients).sort().forEach(function(cli) {
+    var o = document.createElement('option');
+    o.value = cli;
+    o.textContent = cli + ' (' + clients[cli] + ')';
+    filter.appendChild(o);
+  });
+  if (prev) filter.value = prev;
 }
 
 function buildUbiFilter() {
@@ -708,6 +740,7 @@ function populateServiceDropdown() {
   var sel = document.getElementById('fServ');
   sel.innerHTML = '';
   var filterLoc = (document.getElementById('fFilterUbi') || {}).value || '';
+  var filterCli = (document.getElementById('fFilterCli') || {}).value || '';
   /* Deduplicar por Title exacto (quedarse con el de mayor Id) */
   var uniqueMap = {};
   SVCS.forEach(function(s) {
@@ -715,6 +748,12 @@ function populateServiceDropdown() {
     if (!uniqueMap[key] || s.Id > uniqueMap[key].Id) uniqueMap[key] = s;
   });
   var unique = Object.values(uniqueMap).sort(function(a,b){ return b.Id - a.Id; });
+  /* Aplicar filtro de cliente */
+  if (filterCli) {
+    unique = unique.filter(function(s) {
+      return extractSvcClient(s).toLowerCase() === filterCli.toLowerCase();
+    });
+  }
   /* Aplicar filtro de ubicacion */
   if (filterLoc) {
     unique = unique.filter(function(s) {
