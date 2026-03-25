@@ -135,8 +135,8 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://cdn.j
 <input type="number" id="loadById" placeholder="Ej: 12">
 </div>
 <div class="tool-field">
-<label>Cargar OT por No. Orden</label>
-<input type="number" id="loadByNoOrden" placeholder="Ej: 241431">
+<label>Cargar por No. Servicio</label>
+<input type="number" id="loadByNumSvc" placeholder="Ej: 242727">
 </div>
 <button type="button" class="tool-btn primary" onclick="buscarYCargarOt()">Buscar y Cargar</button>
 <button type="button" class="tool-btn" onclick="nuevoModoCrear()">Nueva OT</button>
@@ -749,10 +749,10 @@ function loadExistingOrder() {
 
 function buscarYCargarOt() {
   var idVal = (document.getElementById('loadById').value || '').trim();
-  var noOrdenVal = (document.getElementById('loadByNoOrden').value || '').trim();
+  var numSvcVal = (document.getElementById('loadByNumSvc').value || '').trim();
 
-  if (!idVal && !noOrdenVal) {
-    showToast('Ingrese ID o No. Orden para cargar', 'error', 3000);
+  if (!idVal && !numSvcVal) {
+    showToast('Ingrese ID o No. Servicio para cargar', 'error', 3000);
     return;
   }
 
@@ -763,10 +763,17 @@ function buscarYCargarOt() {
     p = Promise.resolve(parseInt(idVal, 10));
   } else {
     p = spFetch(
-      SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items?$select=ID,NoOrden&$filter=NoOrden eq " + encodeURIComponent(noOrdenVal) + "&$top=1"
+      SITE + "/_api/web/lists(guid'" + SVC_LIST_GUID + "')/items?$select=ID,Title&$filter=Title eq '" + encodeURIComponent(numSvcVal) + "'&$top=1"
     ).then(function(d) {
+      var svcs = d.d.results || [];
+      if (!svcs.length) throw new Error('No se encontr\u00f3 servicio con n\u00famero ' + numSvcVal);
+      var svcId = svcs[0].ID;
+      return spFetch(
+        SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items?$select=ID&$filter=NumeroServicioId eq " + svcId + "&$top=1"
+      );
+    }).then(function(d) {
       var rows = d.d.results || [];
-      if (!rows.length) throw new Error('No se encontró OT con No. Orden ' + noOrdenVal);
+      if (!rows.length) throw new Error('No se encontr\u00f3 OT asociada al servicio ' + numSvcVal);
       return rows[0].ID;
     });
   }
