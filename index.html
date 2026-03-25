@@ -92,6 +92,16 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f3f2f1;
 .success-panel h2{font-size:20px;color:#107c10;margin-bottom:8px}
 .success-panel p{color:#605e5c;font-size:14px;margin-bottom:24px}
 .loading-svc{text-align:center;padding:40px;color:#605e5c;font-size:14px}
+.attach-zone{border:2px dashed #c8c6c4;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:10px}
+.attach-zone:hover,.attach-zone.dragover{border-color:#0078d4;background:#f0f6ff}
+.attach-zone .icon{font-size:32px;margin-bottom:6px}
+.attach-zone p{color:#605e5c;font-size:13px;margin:0}
+.attach-preview{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.attach-item{position:relative;width:100px;border:1px solid #e1dfdd;border-radius:6px;overflow:hidden;background:#faf9f8}
+.attach-item img{width:100%;height:70px;object-fit:cover}
+.attach-item .name{font-size:10px;padding:2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#323130}
+.attach-item .del{position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:12px;cursor:pointer;line-height:16px;padding:0}
+.attach-item .file-icon{width:100%;height:70px;display:flex;align-items:center;justify-content:center;font-size:28px;color:#605e5c;background:#f3f2f1}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.39.0/lib/msal-browser.min.js" crossorigin="anonymous"></script>
 <script>
@@ -323,6 +333,26 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 <div class="field full">
 <label>Notas</label>
 <textarea id="fNot" rows="2" placeholder="Notas adicionales..."></textarea>
+</div>
+</div>
+</div>
+
+<!-- ============ S7: ARCHIVOS ADJUNTOS ============ -->
+<div class="section">
+<div class="sec-header" onclick="toggleSec(this)">
+<span class="icon">&#128247;</span>
+<h2>Archivos Adjuntos</h2>
+<span class="chev">&#9660;</span>
+</div>
+<div class="sec-content">
+<div class="field full">
+<label>Foto de OT f&iacute;sica / Documentos</label>
+<div class="attach-zone" id="attachZone" onclick="document.getElementById('fileInput').click()">
+<div class="icon">&#128206;</div>
+<p>Haz clic o arrastra archivos aqu&iacute;<br><small>Im&aacute;genes (JPG, PNG) o PDF &mdash; m&aacute;x 10 MB cada uno</small></p>
+</div>
+<input type="file" id="fileInput" multiple accept="image/*,.pdf" style="display:none" onchange="onFilesSelected(this.files)">
+<div class="attach-preview" id="attachPreview"></div>
 </div>
 </div>
 </div>
@@ -1175,6 +1205,9 @@ function guardar() {
 
     return Promise.all(promises);
   }).then(function() {
+    /* Upload attachments */
+    return uploadAttachments(targetId, digest);
+  }).then(function() {
     showLoading(false);
     document.getElementById('formBody').style.display = 'none';
     document.getElementById('successMsg').textContent = IS_EDIT_MODE
@@ -1183,6 +1216,9 @@ function guardar() {
     var subMsg = '';
     if (materiales.length) subMsg += materiales.length + ' materiales';
     if (equipos.length) subMsg += (subMsg ? ' y ' : '') + equipos.length + ' equipos';
+    var nFiles = PENDING_FILES.length + DELETED_ATTACHMENTS.length;
+    if (nFiles) subMsg += (subMsg ? '. ' : '') + 'Archivos procesados.';
+    PENDING_FILES = []; DELETED_ATTACHMENTS = [];
     if (subMsg) subMsg = 'Se registraron ' + subMsg + ' asociados.';
     document.getElementById('successSub').textContent = subMsg;
     document.getElementById('linkVer').href = SITE + '/Lists/Ordenes%20de%20Trabajo/DispForm.aspx?ID=' + targetId;
@@ -1192,6 +1228,155 @@ function guardar() {
     showLoading(false);
     showToast('Error: ' + e.message, 'error', 8000);
     document.getElementById('btnGuardar').disabled = false;
+  });
+}
+
+/* ================================================================
+   ATTACHMENTS - file upload / drag-drop
+   ================================================================ */
+var PENDING_FILES = [];
+var DELETED_ATTACHMENTS = [];
+
+function onFilesSelected(fileList) {
+  for (var i = 0; i < fileList.length; i++) {
+    var f = fileList[i];
+    if (f.size > 10 * 1024 * 1024) { showToast(f.name + ' excede 10 MB', 'error', 4000); continue; }
+    PENDING_FILES.push(f);
+  }
+  renderAttachPreview();
+  document.getElementById('fileInput').value = '';
+}
+
+function renderAttachPreview() {
+  var cont = document.getElementById('attachPreview');
+  cont.innerHTML = '';
+  /* existing server attachments */
+  var existing = window.EXISTING_ATTACHMENTS || [];
+  existing.forEach(function(att, idx) {
+    var div = document.createElement('div');
+    div.className = 'attach-item';
+    var isImg = /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(att.FileName);
+    if (isImg) {
+      var img = document.createElement('img');
+      img.alt = att.FileName;
+      div.appendChild(img);
+      /* Load image with auth */
+      getAccessToken().then(function(token) {
+        fetch(SITE + "/_api/web/getfilebyserverrelativeurl('" + encodeURIComponent(att.ServerRelativeUrl) + "')/$value", {
+          headers: { 'Authorization': 'Bearer ' + token }
+        }).then(function(r) { return r.blob(); }).then(function(b) { img.src = URL.createObjectURL(b); });
+      });
+    } else {
+      div.innerHTML = '<div class="file-icon">&#128196;</div>';
+    }
+    var nameDiv = document.createElement('div');
+    nameDiv.className = 'name';
+    nameDiv.textContent = att.FileName;
+    div.appendChild(nameDiv);
+    var btn = document.createElement('button');
+    btn.className = 'del';
+    btn.innerHTML = '&times;';
+    btn.setAttribute('data-idx', idx);
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      var i = parseInt(this.getAttribute('data-idx'));
+      DELETED_ATTACHMENTS.push(existing[i].FileName);
+      existing.splice(i, 1);
+      window.EXISTING_ATTACHMENTS = existing;
+      renderAttachPreview();
+    };
+    div.appendChild(btn);
+    cont.appendChild(div);
+  });
+  /* pending new files */
+  PENDING_FILES.forEach(function(f, idx) {
+    var div = document.createElement('div');
+    div.className = 'attach-item';
+    var isImg = /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(f.name) || f.type.startsWith('image/');
+    if (isImg) {
+      var img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      div.appendChild(img);
+    } else {
+      div.innerHTML = '<div class="file-icon">&#128196;</div>';
+    }
+    var nameDiv = document.createElement('div');
+    nameDiv.className = 'name';
+    nameDiv.textContent = f.name;
+    div.appendChild(nameDiv);
+    var btn = document.createElement('button');
+    btn.className = 'del';
+    btn.innerHTML = '&times;';
+    btn.setAttribute('data-idx', idx);
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      PENDING_FILES.splice(parseInt(this.getAttribute('data-idx')), 1);
+      renderAttachPreview();
+    };
+    div.appendChild(btn);
+    cont.appendChild(div);
+  });
+}
+
+function uploadAttachments(itemId, digest) {
+  var promises = [];
+  /* Delete removed attachments */
+  DELETED_ATTACHMENTS.forEach(function(fname) {
+    promises.push(
+      spFetch(SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + itemId + ")/AttachmentFiles('" + encodeURIComponent(fname) + "')", {
+        method: 'POST',
+        headers: { 'X-RequestDigest': digest, 'IF-MATCH': '*', 'X-HTTP-Method': 'DELETE' }
+      })
+    );
+  });
+  /* Upload new files */
+  PENDING_FILES.forEach(function(file) {
+    var p = file.arrayBuffer().then(function(buf) {
+      return getAccessToken().then(function(token) {
+        return fetch(
+          SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + itemId + ")/AttachmentFiles/add(FileName='" + encodeURIComponent(file.name) + "')",
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + token,
+              'X-RequestDigest': digest,
+              'Content-Type': 'application/octet-stream',
+              'Accept': 'application/json;odata=verbose'
+            },
+            body: buf
+          }
+        ).then(function(r) {
+          if (!r.ok) return r.text().then(function(t) { throw new Error('Upload ' + file.name + ': ' + t.substring(0, 200)); });
+        });
+      });
+    });
+    promises.push(p);
+  });
+  return promises.length ? Promise.all(promises) : Promise.resolve();
+}
+
+function loadExistingAttachments() {
+  if (!IS_EDIT_MODE) return Promise.resolve();
+  return spFetch(
+    SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + EDIT_ID + ")/AttachmentFiles"
+  ).then(function(d) {
+    window.EXISTING_ATTACHMENTS = (d.d && d.d.results || []).map(function(a) {
+      return { FileName: a.FileName, ServerRelativeUrl: a.ServerRelativeUrl };
+    });
+    renderAttachPreview();
+  });
+}
+
+/* Setup drag-drop on attach zone */
+function setupDragDrop() {
+  var zone = document.getElementById('attachZone');
+  if (!zone) return;
+  zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', function() { zone.classList.remove('dragover'); });
+  zone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    onFilesSelected(e.dataTransfer.files);
   });
 }
 
@@ -1210,6 +1395,10 @@ function limpiar() {
   document.getElementById('fServ').selectedIndex = 0;
   document.getElementById('tbodyMat').innerHTML = '';
   document.getElementById('tbodyEq').innerHTML = '';
+  PENDING_FILES = [];
+  DELETED_ATTACHMENTS = [];
+  window.EXISTING_ATTACHMENTS = [];
+  renderAttachPreview();
 }
 
 /* ================================================================
@@ -1225,6 +1414,8 @@ function initForm() {
     Promise.all([loadFieldChoices(), loadServices()])
       .then(loadExistingOrder)
       .then(loadExistingSubItems)
+      .then(loadExistingAttachments)
+      .then(setupDragDrop)
       .catch(function(e) {
         if (e.message && e.message.indexOf('404') !== -1) {
           showToast('Orden #' + EDIT_ID + ' no existe. Cambiando a modo creación.', 'error', 5000);
@@ -1242,6 +1433,7 @@ function initForm() {
     loadServices();
     addMatRow();
     addEqRow();
+    setupDragDrop();
   }
 }
 
