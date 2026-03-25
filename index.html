@@ -263,7 +263,7 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 <div class="tbl-wrap">
 <label style="font-size:13px;font-weight:600;margin-bottom:6px;display:block">Materiales y Repuestos</label>
 <table id="tblMat">
-<thead><tr><th style="width:80px">C&oacute;digo</th><th style="width:60px">Cant.</th><th>Descripci&oacute;n</th><th style="width:90px">Precio</th><th style="width:120px">Proveedor</th><th style="width:30px"></th></tr></thead>
+<thead><tr><th style="width:80px">C&oacute;digo</th><th style="width:60px">Cant.</th><th>Descripci&oacute;n</th><th style="width:90px">Precio</th><th style="width:120px">Proveedor</th><th style="width:100px">RNC</th><th style="width:70px">Propio</th><th style="width:30px"></th></tr></thead>
 <tbody id="tbodyMat"></tbody>
 </table>
 <button type="button" class="btn-add" onclick="addMatRow()">+ Agregar material</button>
@@ -510,6 +510,11 @@ function addMatRowWithData(row) {
   inputs[2].value = row.Descripcion || '';
   inputs[3].value = row.Precio || '';
   inputs[4].value = row.Proveedor || '';
+  inputs[5].value = row.RNC || '';
+  if (row.MaterialPropio) {
+    inputs[6].checked = true;
+    inputs[6].dispatchEvent(new Event('change'));
+  }
 }
 
 function addEqRowWithData(row) {
@@ -817,7 +822,7 @@ function nuevoModoCrear() {
 
 function loadExistingSubItems() {
   if (!IS_EDIT_MODE) return Promise.resolve();
-  var matUrl = SITE + "/_api/web/lists/getbytitle('" + MAT_LIST_TITLE + "')/items?$select=ID,Codigo,Cantidad,Descripcion,Precio,Proveedor&$filter=OrdenTrabajoId eq " + EDIT_ID + "&$orderby=ID asc";
+  var matUrl = SITE + "/_api/web/lists/getbytitle('" + MAT_LIST_TITLE + "')/items?$select=ID,Codigo,Cantidad,Descripcion,Precio,Proveedor,RNC,MaterialPropio&$filter=OrdenTrabajoId eq " + EDIT_ID + "&$orderby=ID asc";
   var eqUrl = SITE + "/_api/web/lists/getbytitle('" + EQ_LIST_TITLE + "')/items?$select=ID,Codigo,Cantidad,Descripcion,Precio,Proveedor&$filter=OrdenTrabajoId eq " + EDIT_ID + "&$orderby=ID asc";
 
   return Promise.all([spFetch(matUrl), spFetch(eqUrl)]).then(function(results) {
@@ -970,8 +975,17 @@ function onServChange() {
 function addMatRow() {
   var tbody = document.getElementById('tbodyMat');
   var tr = document.createElement('tr');
-  tr.innerHTML = '<td><input type="text" placeholder="C\u00F3digo"></td><td><input type="number" min="0" step="1" value="1"></td><td><input type="text" placeholder="Descripci\u00F3n"></td><td><input type="number" min="0" step="0.01" placeholder="0.00"></td><td><input type="text" placeholder="Proveedor"></td><td><button class="btn-del" onclick="this.closest(\'tr\').remove()" title="Eliminar">&times;</button></td>';
+  tr.innerHTML = '<td><input type="text" placeholder="C\u00F3digo"></td><td><input type="number" min="0" step="1" value="1"></td><td><input type="text" placeholder="Descripci\u00F3n"></td><td><input type="number" min="0" step="0.01" placeholder="0.00"></td><td><input type="text" placeholder="Proveedor"></td><td><input type="text" placeholder="RNC" maxlength="20"></td><td style="text-align:center"><input type="checkbox" title="Material propio"></td><td><button class="btn-del" onclick="this.closest(\'tr\').remove()" title="Eliminar">&times;</button></td>';
   tbody.appendChild(tr);
+  /* When Material Propio checked, clear and disable Proveedor+RNC */
+  var inputs = tr.querySelectorAll('input');
+  var chk = inputs[6];
+  chk.addEventListener('change', function() {
+    inputs[4].disabled = chk.checked;
+    inputs[5].disabled = chk.checked;
+    if (chk.checked) { inputs[4].value = ''; inputs[5].value = ''; inputs[4].style.background='#f0f0f0'; inputs[5].style.background='#f0f0f0'; }
+    else { inputs[4].style.background=''; inputs[5].style.background=''; }
+  });
 }
 
 function addEqRow() {
@@ -990,8 +1004,15 @@ function getTableData(tbodyId) {
     var desc = inputs[2].value.trim();
     var precio = parseFloat(inputs[3].value) || 0;
     var prov = inputs[4].value.trim();
+    var rnc = inputs[5] ? inputs[5].value.trim() : '';
+    var propio = inputs[6] ? inputs[6].checked : false;
     if (desc || codigo) {
-      rows.push({ Codigo: codigo, Cantidad: cantidad, Descripcion: desc, Precio: precio, Proveedor: prov, Title: desc || codigo });
+      var item = { Codigo: codigo, Cantidad: cantidad, Descripcion: desc, Precio: precio, Proveedor: propio ? '' : prov, Title: desc || codigo };
+      if (tbodyId === 'tbodyMat') {
+        item.RNC = propio ? '' : rnc;
+        item.MaterialPropio = propio;
+      }
+      rows.push(item);
     }
   });
   return rows;
