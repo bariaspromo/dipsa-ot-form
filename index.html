@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Nueva Orden de Trabajo - CEP DIPSA</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -636,7 +639,7 @@ function updateNavLinks() {
    LOAD SERVICES FROM SHAREPOINT
    ================================================================ */
 function loadServices() {
-  var url = SITE + "/_api/web/lists(guid'" + SVC_LIST_GUID + "')/items?$select=Id,Title,Cliente,FechaCreacion,Estado&$filter=Estado eq 'Activo'&$orderby=Id desc&$top=200";
+  var url = SITE + "/_api/web/lists(guid'" + SVC_LIST_GUID + "')/items?$select=Id,Title,Cliente,FechaCreacion,Estado,Descripcion&$filter=Estado eq 'Activo'&$orderby=Id desc&$top=200";
   return spFetch(url).then(function(data) {
     SVCS = data.d.results;
     buildUbiFilter();
@@ -945,8 +948,11 @@ function onServChange() {
     }
   }
 
-  /* Auto-fill trabajo solicitado */
-  if (desc) {
+  /* Auto-fill trabajo solicitado - prefer full Descripcion field over title extract */
+  var fullDesc = svc.Descripcion || '';
+  if (fullDesc) {
+    document.getElementById('fTSol').value = fullDesc;
+  } else if (desc) {
     document.getElementById('fTSol').value = desc;
   }
 
