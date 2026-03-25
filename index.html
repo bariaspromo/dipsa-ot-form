@@ -637,7 +637,7 @@ function updateNavLinks() {
    LOAD SERVICES FROM SHAREPOINT
    ================================================================ */
 function loadServices() {
-  var url = SITE + "/_api/web/lists(guid'" + SVC_LIST_GUID + "')/items?$select=Id,Title,Cliente,FechaCreacion,Estado,Descripcion&$filter=Estado eq 'Activo'&$orderby=Id desc&$top=200";
+  var url = SITE + "/_api/web/lists(guid'" + SVC_LIST_GUID + "')/items?$select=Id,Title,Cliente,FechaCreacion,Estado,Descripcion,EstadoPlanner,BucketPlanner&$filter=Estado eq 'Activo'&$orderby=Id desc&$top=200";
   return spFetch(url).then(function(data) {
     SVCS = data.d.results;
     buildUbiFilter();
@@ -966,16 +966,9 @@ function onServChange() {
   }
   document.getElementById('fTSol').value = trabajo || desc;
 
-  /* Auto-fill clasificacion from Planner's Tipo de Solicitud */
-  if (fullDesc) {
-    var mTipo = fullDesc.match(/Tipo de Solicitud:\s*\n*([\s\S]*?)(?=\n\s*Asunto|\s*$)/i);
-    if (mTipo) {
-      var tipo = mTipo[1].trim().replace(/\s+/g, ' ');
-      /* Remove common prefix */
-      tipo = tipo.replace(/^DIPSA\s*>\s*Ingenier[ií]a\s*&\s*Mantenimiento\s*>\s*/i, '');
-      document.getElementById('fClasif').value = tipo;
-    }
-  }
+  /* Auto-fill clasificacion from Planner status labels */
+  var estadoPlanner = (svc.EstadoPlanner || '').replace(/\s*\|\s*$/, '').trim();
+  document.getElementById('fClasif').value = estadoPlanner;
 
   /* Set fecha de orden to now */
   var now = new Date();
