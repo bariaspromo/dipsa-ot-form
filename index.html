@@ -758,7 +758,12 @@ function buscarYCargarOt() {
     showToast('OT #' + EDIT_ID + ' cargada para edición', 'success', 3000);
   }).catch(function(e) {
     showLoading(false);
-    showToast('Error cargando OT: ' + e.message, 'error', 6000);
+    if (e.message && e.message.indexOf('404') !== -1) {
+      showToast('OT #' + EDIT_ID + ' no existe. Verifique el ID.', 'error', 5000);
+      nuevoModoCrear();
+    } else {
+      showToast('Error cargando OT: ' + e.message, 'error', 6000);
+    }
   });
 }
 
