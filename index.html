@@ -694,8 +694,12 @@ function extractSvcLocation(s) {
 
 function extractSvcClient(s) {
   if (!s || !s.Cliente) return '';
-  var nm = s.Cliente.match(/Nombre:\s*\n?\s*(.+)/i);
-  return nm ? nm[1].trim().replace(/<[^>]+>/g, '') : '';
+  var em = s.Cliente.match(/<([^>]+@([^>]+))>/);
+  if (em && em[2]) {
+    var domain = em[2].split('.')[0].toUpperCase();
+    return domain;
+  }
+  return '';
 }
 
 function buildCliFilter() {
