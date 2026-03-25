@@ -948,13 +948,25 @@ function onServChange() {
     }
   }
 
-  /* Auto-fill trabajo solicitado - prefer full Descripcion field over title extract */
+  /* Auto-fill trabajo solicitado - extract Asunto + Detalles from Descripcion */
   var fullDesc = svc.Descripcion || '';
+  var trabajo = '';
   if (fullDesc) {
-    document.getElementById('fTSol').value = fullDesc;
-  } else if (desc) {
-    document.getElementById('fTSol').value = desc;
+    var mAsunto = fullDesc.match(/Asunto:\s*\n*([\s\S]*?)(?=\n\s*Detalles|\n\s*\n)/i);
+    var mDet = fullDesc.match(/Detalles de la Solicitud:\s*\n*([\s\S]*?)(?=\n\s*Nivel de|\s*$)/i);
+    var asunto = mAsunto ? mAsunto[1].trim() : '';
+    var detalles = mDet ? mDet[1].trim() : '';
+    if (asunto && detalles) {
+      trabajo = asunto + ' : ' + detalles;
+    } else if (asunto) {
+      trabajo = asunto;
+    } else if (detalles) {
+      trabajo = detalles;
+    } else {
+      trabajo = fullDesc;
+    }
   }
+  document.getElementById('fTSol').value = trabajo || desc;
 
   /* Set fecha de orden to now */
   var now = new Date();
