@@ -1158,7 +1158,18 @@ function initForm() {
     Promise.all([loadFieldChoices(), loadServices()])
       .then(loadExistingOrder)
       .then(loadExistingSubItems)
-      .catch(function(e) { showToast('Error cargando orden: ' + e.message, 'error', 6000); });
+      .catch(function(e) {
+        if (e.message && e.message.indexOf('404') !== -1) {
+          showToast('Orden #' + EDIT_ID + ' no existe. Cambiando a modo creación.', 'error', 5000);
+          IS_EDIT_MODE = false;
+          EDIT_ID = 0;
+          updateModeUI();
+          addMatRow();
+          addEqRow();
+        } else {
+          showToast('Error cargando orden: ' + e.message, 'error', 6000);
+        }
+      });
   } else {
     loadFieldChoices();
     loadServices();
