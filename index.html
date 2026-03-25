@@ -151,6 +151,10 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://cdn.j
 </div>
 <div class="sec-content">
 <div class="field full">
+<label>Filtrar por ubicaci&oacute;n</label>
+<select id="fFilterUbi" onchange="populateServiceDropdown()" style="margin-bottom:8px">
+<option value="">-- Todas las ubicaciones --</option>
+</select>
 <label>N&uacute;mero de Servicio <span class="req">*</span></label>
 <select id="fServ" onchange="onServChange()"><option value="">-- Cargando servicios... --</option></select>
 <div class="hint">Al seleccionar se auto-rellenan fecha, solicitante, ubicaci&oacute;n y trabajo solicitado</div>
@@ -635,6 +639,7 @@ function loadServices() {
   var url = SITE + "/_api/web/lists(guid'" + SVC_LIST_GUID + "')/items?$select=Id,Title,Cliente,FechaCreacion,Estado&$filter=Estado eq 'Activo'&$orderby=Id desc&$top=200";
   return spFetch(url).then(function(data) {
     SVCS = data.d.results;
+    buildUbiFilter();
     populateServiceDropdown();
     showToast(SVCS.length + ' servicios cargados', 'info', 2000);
     return SVCS;
@@ -646,9 +651,35 @@ function loadServices() {
   });
 }
 
+function extractSvcLocation(s) {
+  if (!s || !s.Cliente) return '';
+  var lm = s.Cliente.match(/Localizaci[o\u00f3]n:\s*\n?\s*(.+)/i);
+  return lm ? lm[1].trim() : '';
+}
+
+function buildUbiFilter() {
+  var filter = document.getElementById('fFilterUbi');
+  if (!filter) return;
+  var locs = {};
+  SVCS.forEach(function(s) {
+    var loc = extractSvcLocation(s);
+    if (loc) locs[loc] = (locs[loc] || 0) + 1;
+  });
+  var prev = filter.value;
+  filter.innerHTML = '<option value="">-- Todas las ubicaciones (' + SVCS.length + ') --</option>';
+  Object.keys(locs).sort().forEach(function(loc) {
+    var o = document.createElement('option');
+    o.value = loc;
+    o.textContent = loc + ' (' + locs[loc] + ')';
+    filter.appendChild(o);
+  });
+  if (prev) filter.value = prev;
+}
+
 function populateServiceDropdown() {
   var sel = document.getElementById('fServ');
   sel.innerHTML = '';
+  var filterLoc = (document.getElementById('fFilterUbi') || {}).value || '';
   /* Deduplicar por Title exacto (quedarse con el de mayor Id) */
   var uniqueMap = {};
   SVCS.forEach(function(s) {
@@ -656,23 +687,23 @@ function populateServiceDropdown() {
     if (!uniqueMap[key] || s.Id > uniqueMap[key].Id) uniqueMap[key] = s;
   });
   var unique = Object.values(uniqueMap).sort(function(a,b){ return b.Id - a.Id; });
+  /* Aplicar filtro de ubicacion */
+  if (filterLoc) {
+    unique = unique.filter(function(s) {
+      return extractSvcLocation(s).toLowerCase() === filterLoc.toLowerCase();
+    });
+  }
   sel.innerHTML = '<option value="">-- Seleccione servicio (' + unique.length + ') --</option>';
   unique.forEach(function(s) {
     var t = s.Title || '';
-    /* Extraer numero de servicio y descripcion corta */
     var m = t.match(new RegExp('^(\\d+)\\s*(?:Asignado\\s*-->\\s*)?(.*)$', 'i'));
     var num = m ? m[1] : '';
     var desc = m ? m[2] : t;
-    /* Extraer localizacion del cliente */
-    var loc = '';
-    if (s.Cliente) {
-      var lm = s.Cliente.match(/Localizaci[o\u00f3]n:\s*\n?\s*(.+)/i);
-      if (lm) loc = lm[1].trim();
-    }
-    desc = desc.split(':')[0].trim(); /* solo hasta el primer : */
+    var loc = extractSvcLocation(s);
+    desc = desc.split(':')[0].trim();
     if (desc.length > 50) desc = desc.substring(0, 50) + '...';
     var label = num ? (num + ' - ' + desc) : desc;
-    if (loc) label += ' [' + loc + ']';
+    if (loc && !filterLoc) label += ' [' + loc + ']';
     var o = document.createElement('option');
     o.value = s.Id;
     o.textContent = label;
