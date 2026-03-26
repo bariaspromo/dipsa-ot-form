@@ -201,6 +201,15 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 <label>Departamento <span class="auto-tag">Planner</span></label>
 <input type="text" id="fDepto" readonly style="background:#f5f5f5;cursor:default;" placeholder="Se auto-rellena del servicio...">
 </div>
+<div class="field">
+<label>Forma de Reporte</label>
+<div class="radio-group" id="fReporteGroup">
+<label><input type="radio" name="fReporte" value="Correo"> Correo</label>
+<label><input type="radio" name="fReporte" value="WhatsApp"> WhatsApp</label>
+<label><input type="radio" name="fReporte" value="Llamada"> Llamada</label>
+<label><input type="radio" name="fReporte" value="En sitio"> En sitio</label>
+</div>
+</div>
 
 </div>
 </div>
@@ -804,7 +813,7 @@ function populateServiceDropdown() {
 function loadExistingOrder() {
   if (!IS_EDIT_MODE) return Promise.resolve();
   return spFetch(
-    SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + EDIT_ID + ")?$select=ID,Title,NoSeguimiento,NumeroServicioId,CodigoEquipo,NombreEquipo,Lugar_x0020_del_x0020_mantenimie,TipoMantenimiento,TipoTrabajo,TrabajoSolicitado,TrabajoEjecutado,Observaciones,TecnicoResponsable,TiempoEjecucion,Notas,Clasificacion,Departamento,FechaInicioMantenimiento,FechaCulminacion,FechaOrden"
+    SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + EDIT_ID + ")?$select=ID,Title,NoSeguimiento,NumeroServicioId,CodigoEquipo,NombreEquipo,Lugar_x0020_del_x0020_mantenimie,TipoMantenimiento,TipoTrabajo,TrabajoSolicitado,TrabajoEjecutado,Observaciones,TecnicoResponsable,TiempoEjecucion,Notas,Clasificacion,Departamento,FormaReporte,FechaInicioMantenimiento,FechaCulminacion,FechaOrden"
   ).then(function(d) {
     var item = d.d;
     if (item.NumeroServicioId) {
@@ -824,6 +833,10 @@ function loadExistingOrder() {
     document.getElementById('fNot').value = item.Notas || '';
     document.getElementById('fClasif').value = item.Clasificacion || '';
     document.getElementById('fDepto').value = item.Departamento || '';
+    if (item.FormaReporte) {
+      var radio = document.querySelector('input[name=fReporte][value="' + item.FormaReporte + '"]');
+      if (radio) radio.checked = true;
+    }
     document.getElementById('fFI').value = toInputDateTime(item.FechaInicioMantenimiento);
     document.getElementById('fFC').value = toInputDateTime(item.FechaCulminacion);
     document.getElementById('fFechaOrden').value = toInputDateTime(item.FechaOrden);
@@ -1163,6 +1176,9 @@ function guardar() {
   /* Tipo mantenimiento */
   var mr = document.querySelector('input[name=tMant]:checked');
 
+  /* Forma de reporte */
+  var fr = document.querySelector('input[name=fReporte]:checked');
+
   /* Build OT data */
   var data = {
     NumeroServicioId: parseInt(document.getElementById('fServ').value) || null,
@@ -1178,7 +1194,8 @@ function guardar() {
     TiempoEjecucion: document.getElementById('fTiE').value.trim() || null,
     Notas: document.getElementById('fNot').value.trim() || null,
     Clasificacion: document.getElementById('fClasif').value || null,
-    Departamento: document.getElementById('fDepto').value || null
+    Departamento: document.getElementById('fDepto').value || null,
+    FormaReporte: fr ? fr.value : null
   };
 
   /* Multi-choice fields */
