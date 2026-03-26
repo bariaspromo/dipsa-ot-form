@@ -1169,7 +1169,7 @@ function onServChange() {
     var curSvc = URL_PARAMS.get('SVC') || URL_PARAMS.get('svc');
     if (curSvc !== String(id)) {
       var base = window.location.origin + window.location.pathname;
-      window.location.href = base + '?v=2&SVC=' + encodeURIComponent(id);
+      window.location.href = base + '?v=' + Date.now() + '&SVC=' + encodeURIComponent(id);
       return;
     }
     loadServiceOTs(id);
