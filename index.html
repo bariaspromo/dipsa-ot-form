@@ -708,6 +708,13 @@ function loadServices() {
     buildCliFilter();
     buildUbiFilter();
     populateServiceDropdown();
+    /* Auto-select service from URL param SVC */
+    var svcParam = URL_PARAMS.get('SVC') || URL_PARAMS.get('svc');
+    if (svcParam) {
+      var sel = document.getElementById('fServ');
+      sel.value = svcParam;
+      if (sel.value === svcParam) onServChange();
+    }
     showToast(SVCS.length + ' servicios cargados', 'info', 2000);
     return SVCS;
   }).catch(function(e) {
@@ -1152,15 +1159,11 @@ function onServChange() {
   document.getElementById('pd2').classList.add('active');
   document.getElementById('pd3').classList.add('active');
 
-  /* Reset edit mode so loadServiceOTs can auto-load the new service's OT */
+  /* Al cambiar servicio manualmente, recargar la pagina con el SVC seleccionado */
   if (!_skipOTLookup) {
-    IS_EDIT_MODE = false;
-    EDIT_ID = 0;
-    updateModeUI();
-    var u = new URL(window.location.href);
-    u.searchParams.delete('ID');
-    window.history.replaceState({}, '', u.toString());
-    loadServiceOTs(id);
+    var base = window.location.origin + window.location.pathname;
+    window.location.href = base + '?v=2&SVC=' + encodeURIComponent(id);
+    return;
   }
 }
 
