@@ -1016,19 +1016,21 @@ function resetManualMode() {
 }
 
 function autoGenerateSeguimiento() {
-  var url = SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items?$select=NoSeguimiento&$orderby=NoSeguimiento desc&$top=1";
+  /* Query only 5-digit range (10000-99999) to keep manual OTs separate from 6-digit service numbers */
+  var url = SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items?$select=NoSeguimiento&$filter=NoSeguimiento ge 10000 and NoSeguimiento lt 100000&$orderby=NoSeguimiento desc&$top=1";
   spFetch(url).then(function(d) {
     var items = d.d.results || [];
-    var maxSeg = 0;
+    var maxSeg = 10000;
     if (items.length && items[0].NoSeguimiento) {
-      maxSeg = parseInt(items[0].NoSeguimiento) || 0;
+      maxSeg = parseInt(items[0].NoSeguimiento) || 10000;
     }
     var next = maxSeg + 1;
+    if (next > 99999) next = 10001; /* wrap around if exhausted */
     var str = String(next);
     while (str.length < 5) str = '0' + str;
     document.getElementById('fSeg').value = str;
   }).catch(function() {
-    document.getElementById('fSeg').value = '00001';
+    document.getElementById('fSeg').value = '10001';
   });
 }
 
