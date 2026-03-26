@@ -1019,6 +1019,8 @@ function extractTelefono(c) {
 /* ================================================================
    ON SERVICE CHANGE - Autofill fields
    ================================================================ */
+var _skipOTLookup = false;
+
 function loadServiceOTs(svcId) {
   var panel = document.getElementById('otHistory');
   var tbody = document.getElementById('otHistBody');
@@ -1057,12 +1059,15 @@ function loadServiceOTs(svcId) {
       u.searchParams.set('ID', String(EDIT_ID));
       window.history.replaceState({}, '', u.toString());
 
+      _skipOTLookup = true;
       loadExistingOrder()
         .then(loadExistingSubItems)
         .then(loadExistingAttachments)
         .then(function() {
+          _skipOTLookup = false;
           showToast('OT #' + EDIT_ID + ' cargada para edici\u00f3n', 'info', 3000);
         }).catch(function(e) {
+          _skipOTLookup = false;
           showToast('Error cargando OT: ' + e.message, 'error', 4000);
         });
     }
@@ -1153,7 +1158,7 @@ function onServChange() {
   document.getElementById('pd3').classList.add('active');
 
   /* Load existing OTs for this service */
-  loadServiceOTs(id);
+  if (!_skipOTLookup) loadServiceOTs(id);
 }
 
 /* ================================================================
