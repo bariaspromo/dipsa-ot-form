@@ -830,7 +830,7 @@ function populateServiceDropdown() {
 function loadExistingOrder() {
   if (!IS_EDIT_MODE) return Promise.resolve();
   return spFetch(
-    SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + EDIT_ID + ")?$select=ID,Title,NoSeguimiento,NumeroServicioId,CodigoEquipo,NombreEquipo,Lugar_x0020_del_x0020_mantenimie,TipoMantenimiento,TipoTrabajo,TrabajoSolicitado,TrabajoEjecutado,Observaciones,TecnicoResponsable,TiempoEjecucion,Notas,Clasificacion,Departamento,FormaReporte,FechaInicioMantenimiento,FechaCulminacion,FechaOrden"
+    SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + EDIT_ID + ")?$select=ID,Title,NoSeguimiento,NumeroServicioId,CodigoEquipo,NombreEquipo,Lugar_x0020_del_x0020_mantenimie,TipoMantenimiento,TipoTrabajo,TrabajoSolicitado,TrabajoEjecutado,Observaciones,TecnicoResponsable,TiempoEjecucion,Notas,Clasificacion,FechaInicioMantenimiento,FechaCulminacion,FechaOrden"
   ).then(function(d) {
     var item = d.d;
     console.debug('[loadExistingOrder] OT #' + EDIT_ID, {
@@ -838,8 +838,7 @@ function loadExistingOrder() {
       TipoTrabajo: item.TipoTrabajo,
       TecnicoResponsable: item.TecnicoResponsable,
       FechaOrden: item.FechaOrden,
-      TrabajoEjecutado: item.TrabajoEjecutado,
-      FormaReporte: item.FormaReporte
+      TrabajoEjecutado: item.TrabajoEjecutado
     });
     if (item.NumeroServicioId) {
       document.getElementById('fServ').value = String(item.NumeroServicioId);
@@ -857,11 +856,6 @@ function loadExistingOrder() {
     document.getElementById('fTiE').value = item.TiempoEjecucion || '';
     document.getElementById('fNot').value = item.Notas || '';
     document.getElementById('fClasif').value = item.Clasificacion || '';
-    document.getElementById('fDepto').value = item.Departamento || '';
-    if (item.FormaReporte) {
-      var radio = document.querySelector('input[name=fReporte][value="' + item.FormaReporte + '"]');
-      if (radio) radio.checked = true;
-    }
     document.getElementById('fFI').value = toInputDateTime(item.FechaInicioMantenimiento);
     document.getElementById('fFC').value = toInputDateTime(item.FechaCulminacion);
     document.getElementById('fFechaOrden').value = toInputDateTime(item.FechaOrden);
@@ -1253,9 +1247,6 @@ function guardar() {
   /* Tipo mantenimiento */
   var mr = document.querySelector('input[name=tMant]:checked');
 
-  /* Forma de reporte */
-  var fr = document.querySelector('input[name=fReporte]:checked');
-
   /* Build OT data */
   var data = {
     NumeroServicioId: parseInt(document.getElementById('fServ').value) || null,
@@ -1270,9 +1261,7 @@ function guardar() {
     TecnicoResponsable: document.getElementById('fTec').value.trim() || null,
     TiempoEjecucion: document.getElementById('fTiE').value.trim() || null,
     Notas: document.getElementById('fNot').value.trim() || null,
-    Clasificacion: document.getElementById('fClasif').value || null,
-    Departamento: document.getElementById('fDepto').value || null,
-    FormaReporte: fr ? fr.value : null
+    Clasificacion: document.getElementById('fClasif').value || null
   };
 
   /* Multi-choice fields */
