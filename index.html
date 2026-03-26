@@ -235,6 +235,10 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 <input type="text" id="fClasif" readonly style="background:#f5f5f5;cursor:default;" placeholder="Se auto-rellena del servicio...">
 </div>
 <div class="field">
+<label>Departamento <span class="auto-tag">Planner</span></label>
+<input type="text" id="fDepto" readonly style="background:#f5f5f5;cursor:default;" placeholder="Se auto-rellena del servicio...">
+</div>
+<div class="field">
 <label>Fecha de la Orden</label>
 <input type="datetime-local" id="fFechaOrden">
 </div>
@@ -787,7 +791,7 @@ function populateServiceDropdown() {
 function loadExistingOrder() {
   if (!IS_EDIT_MODE) return Promise.resolve();
   return spFetch(
-    SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + EDIT_ID + ")?$select=ID,Title,NumeroServicioId,CodigoEquipo,NombreEquipo,Lugar_x0020_del_x0020_mantenimie,TipoMantenimiento,TipoTrabajo,TrabajoSolicitado,TrabajoEjecutado,Observaciones,TecnicoResponsable,TiempoEjecucion,Notas,Clasificacion,FechaInicioMantenimiento,FechaCulminacion,FechaOrden"
+    SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + EDIT_ID + ")?$select=ID,Title,NumeroServicioId,CodigoEquipo,NombreEquipo,Lugar_x0020_del_x0020_mantenimie,TipoMantenimiento,TipoTrabajo,TrabajoSolicitado,TrabajoEjecutado,Observaciones,TecnicoResponsable,TiempoEjecucion,Notas,Clasificacion,Departamento,FechaInicioMantenimiento,FechaCulminacion,FechaOrden"
   ).then(function(d) {
     var item = d.d;
     if (item.NumeroServicioId) {
@@ -805,6 +809,7 @@ function loadExistingOrder() {
     document.getElementById('fTiE').value = item.TiempoEjecucion || '';
     document.getElementById('fNot').value = item.Notas || '';
     document.getElementById('fClasif').value = item.Clasificacion || '';
+    document.getElementById('fDepto').value = item.Departamento || '';
     document.getElementById('fFI').value = toInputDateTime(item.FechaInicioMantenimiento);
     document.getElementById('fFC').value = toInputDateTime(item.FechaCulminacion);
     document.getElementById('fFechaOrden').value = toInputDateTime(item.FechaOrden);
@@ -1034,6 +1039,10 @@ function onServChange() {
   var estadoPlanner = (svc.EstadoPlanner || '').replace(/\s*\|\s*$/, '').trim();
   document.getElementById('fClasif').value = estadoPlanner;
 
+  /* Auto-fill departamento from Planner bucket */
+  var depto = svc.BucketPlanner || '';
+  document.getElementById('fDepto').value = depto;
+
   /* Set fecha de orden to now */
   var now = new Date();
   now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -1149,7 +1158,8 @@ function guardar() {
     TecnicoResponsable: document.getElementById('fTec').value.trim() || null,
     TiempoEjecucion: document.getElementById('fTiE').value.trim() || null,
     Notas: document.getElementById('fNot').value.trim() || null,
-    Clasificacion: document.getElementById('fClasif').value || null
+    Clasificacion: document.getElementById('fClasif').value || null,
+    Departamento: document.getElementById('fDepto').value || null
   };
 
   /* Multi-choice fields */
