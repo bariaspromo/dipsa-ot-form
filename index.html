@@ -205,7 +205,7 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 </div>
 <button type="button" class="tool-btn primary" onclick="buscarYCargarOt()">Buscar y Cargar</button>
 <button type="button" class="tool-btn" onclick="window.location.href=window.location.origin+window.location.pathname+'?v='+Date.now()">Recargar Formulario</button>
-<button type="button" class="tool-btn" onclick="nuevoModoCrear()" style="border-color:#107c10;color:#107c10">+ Nueva OT Manual</button>
+<button type="button" class="tool-btn" onclick="nuevoModoManual()" style="border-color:#107c10;color:#107c10">+ Nueva OT Manual</button>
 </div>
 
 <!-- ============ S1: SERVICIO Y SOLICITUD ============ -->
@@ -471,6 +471,8 @@ var SVCS = []; // loaded dynamically
 var URL_PARAMS = new URLSearchParams(window.location.search);
 var EDIT_ID = parseInt(URL_PARAMS.get('ID') || URL_PARAMS.get('id') || '0', 10) || 0;
 var IS_EDIT_MODE = EDIT_ID > 0;
+var IS_MANUAL_MODE = false;
+var LOCATION_CHOICES = [];
 
 /* MSAL.js Authentication */
 var REDIRECT_URI = window.location.origin + '/dipsa-ot-form/';
@@ -531,11 +533,17 @@ function doLogin() {
 function updateModeUI() {
   var pill = document.getElementById('modePill');
   var btn = document.getElementById('btnGuardar');
-  if (IS_EDIT_MODE) {
+  if (IS_MANUAL_MODE) {
+    pill.textContent = 'Modo: Manual';
+    pill.style.background = '#107c10';
+    btn.innerHTML = '&#128190; Guardar Orden Manual';
+  } else if (IS_EDIT_MODE) {
     pill.textContent = 'Modo: Editar OT #' + EDIT_ID;
+    pill.style.background = '';
     btn.innerHTML = '&#9998; Actualizar Orden';
   } else {
     pill.textContent = 'Modo: Crear';
+    pill.style.background = '';
     btn.innerHTML = '&#128190; Guardar Orden';
   }
 }
@@ -698,7 +706,7 @@ function loadFieldChoices() {
       var choices = (field.Choices && field.Choices.results) || [];
       switch (field.InternalName) {
         case 'Lugar_x0020_del_x0020_mantenimie':
-          /* Location is now auto-filled as readonly text from service */
+          LOCATION_CHOICES = choices;
           break;
         case 'TipoMantenimiento':
           populateRadioGroup('tMantGroup', 'tMant', choices);
@@ -981,7 +989,130 @@ function buscarYCargarOt() {
   });
 }
 
+function resetManualMode() {
+  if (!IS_MANUAL_MODE) return;
+  IS_MANUAL_MODE = false;
+
+  var cli = document.getElementById('fCli');
+  cli.disabled = true;
+  cli.placeholder = 'Se rellena al seleccionar servicio';
+
+  var lugarDisplay = document.getElementById('fLugarDisplay');
+  lugarDisplay.style.display = '';
+  var manualSel = document.getElementById('fLugarManual');
+  if (manualSel) manualSel.remove();
+
+  var depto = document.getElementById('fDepto');
+  depto.readOnly = true;
+  depto.style.background = '#f5f5f5';
+  depto.style.cursor = 'default';
+  depto.placeholder = 'Se auto-rellena del servicio...';
+
+  var tsol = document.getElementById('fTSol');
+  tsol.readOnly = true;
+  tsol.style.background = '#f5f5f5';
+  tsol.style.cursor = 'default';
+  tsol.placeholder = 'Se auto-rellena del servicio seleccionado...';
+}
+
+function autoGenerateSeguimiento() {
+  var url = SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items?$select=NoSeguimiento&$orderby=NoSeguimiento desc&$top=1";
+  spFetch(url).then(function(d) {
+    var items = d.d.results || [];
+    var maxSeg = 0;
+    if (items.length && items[0].NoSeguimiento) {
+      maxSeg = parseInt(items[0].NoSeguimiento) || 0;
+    }
+    var next = maxSeg + 1;
+    var str = String(next);
+    while (str.length < 5) str = '0' + str;
+    document.getElementById('fSeg').value = str;
+  }).catch(function() {
+    document.getElementById('fSeg').value = '00001';
+  });
+}
+
+function nuevoModoManual() {
+  IS_EDIT_MODE = false;
+  EDIT_ID = 0;
+  IS_MANUAL_MODE = true;
+  updateModeUI();
+
+  var url = new URL(window.location.href);
+  url.searchParams.delete('ID');
+  window.history.replaceState({}, '', url.toString());
+
+  /* Clear form without confirm dialog */
+  document.querySelectorAll('input:not([type=checkbox]):not([type=radio]),textarea').forEach(function(el) {
+    if (el.id !== 'fFilterCli' && el.id !== 'fFilterUbi') el.value = '';
+  });
+  document.querySelectorAll('input[type=checkbox],input[type=radio]').forEach(function(c) { c.checked = false });
+  document.getElementById('svcCard').classList.remove('show');
+  document.getElementById('otHistory').classList.remove('show');
+  document.querySelectorAll('.progress .dot').forEach(function(d) { d.classList.remove('done','active') });
+  document.getElementById('pd1').classList.add('active');
+  document.getElementById('fServ').selectedIndex = 0;
+  document.getElementById('tbodyMat').innerHTML = '';
+  document.getElementById('tbodyEq').innerHTML = '';
+  PENDING_FILES = [];
+  DELETED_ATTACHMENTS = [];
+  window.EXISTING_ATTACHMENTS = [];
+  renderAttachPreview();
+  addMatRow();
+  addEqRow();
+
+  /* Enable Cliente */
+  var cli = document.getElementById('fCli');
+  cli.disabled = false;
+  cli.placeholder = 'Escriba el nombre del cliente';
+
+  /* Enable Ubicación as dropdown */
+  var lugarDisplay = document.getElementById('fLugarDisplay');
+  lugarDisplay.style.display = 'none';
+  var existing = document.getElementById('fLugarManual');
+  if (existing) existing.remove();
+  var sel = document.createElement('select');
+  sel.id = 'fLugarManual';
+  sel.innerHTML = '<option value="">-- Seleccione ubicaci\u00f3n --</option>';
+  LOCATION_CHOICES.forEach(function(c) {
+    var o = document.createElement('option');
+    o.value = c;
+    o.textContent = c;
+    sel.appendChild(o);
+  });
+  sel.onchange = function() {
+    document.getElementById('fLugar').value = sel.value;
+    document.getElementById('fLugarDisplay').value = sel.value;
+  };
+  lugarDisplay.parentNode.insertBefore(sel, lugarDisplay.nextSibling);
+
+  /* Enable Departamento */
+  var depto = document.getElementById('fDepto');
+  depto.readOnly = false;
+  depto.style.background = '';
+  depto.style.cursor = '';
+  depto.placeholder = 'Escriba el departamento';
+
+  /* Enable Trabajo Solicitado */
+  var tsol = document.getElementById('fTSol');
+  tsol.readOnly = false;
+  tsol.style.background = '';
+  tsol.style.cursor = '';
+  tsol.placeholder = 'Escriba el trabajo solicitado';
+
+  /* Auto-generate 5-digit NoSeguimiento */
+  autoGenerateSeguimiento();
+
+  /* Set fecha de orden */
+  var now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('fFechaOrden').value = now.toISOString().slice(0, 16);
+
+  showToast('Modo manual activado. Complete los campos manualmente.', 'info', 3000);
+}
+
 function nuevoModoCrear() {
+  resetManualMode();
   IS_EDIT_MODE = false;
   EDIT_ID = 0;
   updateModeUI();
@@ -1137,6 +1268,8 @@ function onServChange() {
     document.getElementById('otHistory').classList.remove('show');
     return;
   }
+  resetManualMode();
+  updateModeUI();
   var svc = SVCS.find(function(s){ return s.Id == id });
   if (!svc) return;
 
@@ -1279,8 +1412,10 @@ function getTableData(tbodyId) {
    ================================================================ */
 function validate() {
   var ok = true;
-  var s = document.getElementById('fServ');
-  if (!s.value) { s.classList.add('error'); ok = false } else { s.classList.remove('error') }
+  if (!IS_MANUAL_MODE) {
+    var s = document.getElementById('fServ');
+    if (!s.value) { s.classList.add('error'); ok = false } else { s.classList.remove('error') }
+  }
   var t = document.getElementById('fTSol');
   if (!t.value.trim()) { t.classList.add('error'); ok = false } else { t.classList.remove('error') }
   if (!ok) showToast('Complete los campos marcados con *', 'error', 3000);
