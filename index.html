@@ -833,6 +833,14 @@ function loadExistingOrder() {
     SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + EDIT_ID + ")?$select=ID,Title,NoSeguimiento,NumeroServicioId,CodigoEquipo,NombreEquipo,Lugar_x0020_del_x0020_mantenimie,TipoMantenimiento,TipoTrabajo,TrabajoSolicitado,TrabajoEjecutado,Observaciones,TecnicoResponsable,TiempoEjecucion,Notas,Clasificacion,Departamento,FormaReporte,FechaInicioMantenimiento,FechaCulminacion,FechaOrden"
   ).then(function(d) {
     var item = d.d;
+    console.debug('[loadExistingOrder] OT #' + EDIT_ID, {
+      TipoMantenimiento: item.TipoMantenimiento,
+      TipoTrabajo: item.TipoTrabajo,
+      TecnicoResponsable: item.TecnicoResponsable,
+      FechaOrden: item.FechaOrden,
+      TrabajoEjecutado: item.TrabajoEjecutado,
+      FormaReporte: item.FormaReporte
+    });
     if (item.NumeroServicioId) {
       document.getElementById('fServ').value = String(item.NumeroServicioId);
       onServChange();
@@ -1087,10 +1095,7 @@ function onServChange() {
   var svc = SVCS.find(function(s){ return s.Id == id });
   if (!svc) return;
 
-  /* Auto-fill NoSeguimiento from service number */
   var svcNum = (svc.Title || '').match(/^(\d+)/);
-  document.getElementById('fSeg').value = svcNum ? svcNum[1] : '';
-
   var fecha = svc.FechaCreacion ? new Date(svc.FechaCreacion).toLocaleDateString('es-DO', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'N/A';
   var nom = extractNombre(svc.Cliente);
   var email = extractEmail(svc.Cliente);
@@ -1111,46 +1116,42 @@ function onServChange() {
   document.getElementById('iA').textContent = desc || title;
   card.classList.add('show');
 
-  /* Auto-fill fields */
-  document.getElementById('fCli').value = 'DIPSA';
+  /* Skip form field auto-fill when loading an existing OT */
+  if (!_skipOTLookup) {
+    document.getElementById('fSeg').value = svcNum ? svcNum[1] : '';
+    document.getElementById('fCli').value = 'DIPSA';
+    document.getElementById('fLugar').value = ubi || '';
+    document.getElementById('fLugarDisplay').value = ubi || '';
 
-
-  /* Set location from service */
-  document.getElementById('fLugar').value = ubi || '';
-  document.getElementById('fLugarDisplay').value = ubi || '';
-
-  /* Auto-fill trabajo solicitado - extract Asunto + Detalles from Descripcion */
-  var fullDesc = svc.Descripcion || '';
-  var trabajo = '';
-  if (fullDesc) {
-    var mAsunto = fullDesc.match(/Asunto:\s*\n*([\s\S]*?)(?=\n\s*Detalles|\n\s*\n)/i);
-    var mDet = fullDesc.match(/Detalles de la Solicitud:\s*\n*([\s\S]*?)(?=\n\s*Nivel de|\s*$)/i);
-    var asunto = mAsunto ? mAsunto[1].trim() : '';
-    var detalles = mDet ? mDet[1].trim() : '';
-    if (asunto && detalles) {
-      trabajo = asunto + ' : ' + detalles;
-    } else if (asunto) {
-      trabajo = asunto;
-    } else if (detalles) {
-      trabajo = detalles;
-    } else {
-      trabajo = fullDesc;
+    var fullDesc = svc.Descripcion || '';
+    var trabajo = '';
+    if (fullDesc) {
+      var mAsunto = fullDesc.match(/Asunto:\s*\n*([\s\S]*?)(?=\n\s*Detalles|\n\s*\n)/i);
+      var mDet = fullDesc.match(/Detalles de la Solicitud:\s*\n*([\s\S]*?)(?=\n\s*Nivel de|\s*$)/i);
+      var asunto = mAsunto ? mAsunto[1].trim() : '';
+      var detalles = mDet ? mDet[1].trim() : '';
+      if (asunto && detalles) {
+        trabajo = asunto + ' : ' + detalles;
+      } else if (asunto) {
+        trabajo = asunto;
+      } else if (detalles) {
+        trabajo = detalles;
+      } else {
+        trabajo = fullDesc;
+      }
     }
+    document.getElementById('fTSol').value = trabajo || desc;
+
+    var estadoPlanner = (svc.EstadoPlanner || '').replace(/\s*\|\s*$/, '').trim();
+    document.getElementById('fClasif').value = estadoPlanner;
+
+    var depto = svc.BucketPlanner || '';
+    document.getElementById('fDepto').value = depto;
+
+    var now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById('fFechaOrden').value = now.toISOString().slice(0, 16);
   }
-  document.getElementById('fTSol').value = trabajo || desc;
-
-  /* Auto-fill clasificacion from Planner status labels */
-  var estadoPlanner = (svc.EstadoPlanner || '').replace(/\s*\|\s*$/, '').trim();
-  document.getElementById('fClasif').value = estadoPlanner;
-
-  /* Auto-fill departamento from Planner bucket */
-  var depto = svc.BucketPlanner || '';
-  document.getElementById('fDepto').value = depto;
-
-  /* Set fecha de orden to now */
-  var now = new Date();
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  document.getElementById('fFechaOrden').value = now.toISOString().slice(0, 16);
 
   /* Update progress */
   document.getElementById('pd1').classList.add('done');
