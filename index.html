@@ -837,7 +837,7 @@ function populateServiceDropdown() {
 function loadExistingOrder() {
   if (!IS_EDIT_MODE) return Promise.resolve();
   return spFetch(
-    SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + EDIT_ID + ")?$select=ID,Title,NoSeguimiento,NumeroServicioId,CodigoEquipo,NombreEquipo,Lugar_x0020_del_x0020_mantenimie,TipoMantenimiento,TipoTrabajo,TrabajoSolicitado,TrabajoEjecutado,Observaciones,TecnicoResponsable,TiempoEjecucion,Notas,Clasificacion,FechaInicioMantenimiento,FechaCulminacion,FechaOrden"
+    SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + EDIT_ID + ")?$select=ID,Title,NoSeguimiento,NumeroServicioId,CodigoEquipo,NombreEquipo,Lugar_x0020_del_x0020_mantenimie,TipoMantenimiento,TipoTrabajo,TrabajoSolicitado,TrabajoEjecutado,Observaciones,TecnicoResponsable,TiempoEjecucion,Notas,Clasificacion,FechaInicioMantenimiento,FechaCulminacion,FechaOrden,Departamento,Forma_x0020_de_x0020_Reporte"
   ).then(function(d) {
     var item = d.d;
     console.debug('[loadExistingOrder] OT #' + EDIT_ID, {
@@ -866,6 +866,11 @@ function loadExistingOrder() {
     document.getElementById('fFI').value = toInputDateTime(item.FechaInicioMantenimiento);
     document.getElementById('fFC').value = toInputDateTime(item.FechaCulminacion);
     document.getElementById('fFechaOrden').value = toInputDateTime(item.FechaOrden);
+    document.getElementById('fDepto').value = item.Departamento || '';
+    if (item.Forma_x0020_de_x0020_Reporte) {
+      var frRadio = document.querySelector('input[name=fReporte][value="' + item.Forma_x0020_de_x0020_Reporte + '"]');
+      if (frRadio) frRadio.checked = true;
+    }
 
     if (item.TipoMantenimiento) {
       var radio = document.querySelector('input[name=tMant][value="' + item.TipoMantenimiento + '"]');
@@ -1272,7 +1277,9 @@ function guardar() {
     TecnicoResponsable: document.getElementById('fTec').value.trim() || null,
     TiempoEjecucion: document.getElementById('fTiE').value.trim() || null,
     Notas: document.getElementById('fNot').value.trim() || null,
-    Clasificacion: document.getElementById('fClasif').value || null
+    Clasificacion: document.getElementById('fClasif').value || null,
+    Departamento: document.getElementById('fDepto').value || null,
+    Forma_x0020_de_x0020_Reporte: (function(){ var r = document.querySelector('input[name=fReporte]:checked'); return r ? r.value : null; })()
   };
 
   /* Multi-choice fields */
