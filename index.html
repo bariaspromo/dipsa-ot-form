@@ -191,7 +191,7 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 </div>
 <div class="field">
 <label>No. Seguimiento <span class="auto-tag">Auto</span></label>
-<input type="text" id="fSeg" disabled placeholder="Asignado por flujo autom&aacute;tico">
+<input type="text" id="fSeg" readonly style="background:#f5f5f5;cursor:default;" placeholder="Cargando...">
 </div>
 <div class="field">
 <label>Clasificaci&oacute;n <span class="auto-tag">Planner</span></label>
@@ -692,6 +692,19 @@ function loadServices() {
   });
 }
 
+function loadNextSeguimiento() {
+  var url = SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items?$select=NoSeguimiento&$orderby=NoSeguimiento desc&$top=1&$filter=NoSeguimiento ne null";
+  return spFetch(url).then(function(data) {
+    var items = data.d.results;
+    var next = (items.length > 0 && items[0].NoSeguimiento) ? items[0].NoSeguimiento + 1 : 1;
+    document.getElementById('fSeg').value = next;
+  }).catch(function(e) {
+    console.warn('No se pudo cargar NoSeguimiento:', e);
+    document.getElementById('fSeg').value = '';
+    document.getElementById('fSeg').placeholder = 'Error al cargar';
+  });
+}
+
 function extractSvcLocation(s) {
   if (!s || !s.Cliente) return '';
   var lm = s.Cliente.match(/Localizaci[o\u00f3]n:\s*\n?\s*(.+)/i);
@@ -791,13 +804,14 @@ function populateServiceDropdown() {
 function loadExistingOrder() {
   if (!IS_EDIT_MODE) return Promise.resolve();
   return spFetch(
-    SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + EDIT_ID + ")?$select=ID,Title,NumeroServicioId,CodigoEquipo,NombreEquipo,Lugar_x0020_del_x0020_mantenimie,TipoMantenimiento,TipoTrabajo,TrabajoSolicitado,TrabajoEjecutado,Observaciones,TecnicoResponsable,TiempoEjecucion,Notas,Clasificacion,Departamento,FechaInicioMantenimiento,FechaCulminacion,FechaOrden"
+    SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + EDIT_ID + ")?$select=ID,Title,NoSeguimiento,NumeroServicioId,CodigoEquipo,NombreEquipo,Lugar_x0020_del_x0020_mantenimie,TipoMantenimiento,TipoTrabajo,TrabajoSolicitado,TrabajoEjecutado,Observaciones,TecnicoResponsable,TiempoEjecucion,Notas,Clasificacion,Departamento,FechaInicioMantenimiento,FechaCulminacion,FechaOrden"
   ).then(function(d) {
     var item = d.d;
     if (item.NumeroServicioId) {
       document.getElementById('fServ').value = String(item.NumeroServicioId);
       onServChange();
     }
+    document.getElementById('fSeg').value = item.NoSeguimiento || '';
     document.getElementById('fCodEq').value = item.CodigoEquipo || '';
     document.getElementById('fNomEq').value = item.NombreEquipo || '';
     document.getElementById('fLugar').value = item.Lugar_x0020_del_x0020_mantenimie || '';
@@ -1148,6 +1162,7 @@ function guardar() {
   /* Build OT data */
   var data = {
     NumeroServicioId: parseInt(document.getElementById('fServ').value) || null,
+    NoSeguimiento: parseInt(document.getElementById('fSeg').value) || null,
     CodigoEquipo: document.getElementById('fCodEq').value.trim() || null,
     NombreEquipo: document.getElementById('fNomEq').value.trim() || null,
     Lugar_x0020_del_x0020_mantenimie: document.getElementById('fLugar').value || null,
@@ -1497,6 +1512,7 @@ function initForm() {
   } else {
     loadFieldChoices();
     loadServices();
+    loadNextSeguimiento();
     addMatRow();
     addEqRow();
     setupDragDrop();
