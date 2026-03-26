@@ -1152,8 +1152,16 @@ function onServChange() {
   document.getElementById('pd2').classList.add('active');
   document.getElementById('pd3').classList.add('active');
 
-  /* Load existing OTs for this service */
-  if (!_skipOTLookup) loadServiceOTs(id);
+  /* Reset edit mode so loadServiceOTs can auto-load the new service's OT */
+  if (!_skipOTLookup) {
+    IS_EDIT_MODE = false;
+    EDIT_ID = 0;
+    updateModeUI();
+    var u = new URL(window.location.href);
+    u.searchParams.delete('ID');
+    window.history.replaceState({}, '', u.toString());
+    loadServiceOTs(id);
+  }
 }
 
 /* ================================================================
