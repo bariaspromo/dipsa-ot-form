@@ -1032,7 +1032,7 @@ function loadServiceOTs(svcId) {
   spFetch(url).then(function(d) {
     var rows = d.d.results || [];
     if (!rows.length) return;
-    warnText.textContent = 'Este servicio ya tiene ' + rows.length + ' orden' + (rows.length > 1 ? 'es' : '') + ' de trabajo registrada' + (rows.length > 1 ? 's' : '');
+    warnText.textContent = 'Este servicio ya tiene ' + rows.length + ' orden' + (rows.length > 1 ? 'es' : '') + ' de trabajo registrada' + (rows.length > 1 ? 's' : '') + '. Cargando la m\u00e1s reciente...';
     rows.forEach(function(r) {
       var tr = document.createElement('tr');
       var fechaOrd = r.FechaOrden ? new Date(r.FechaOrden).toLocaleDateString('es-DO', {year:'numeric', month:'short', day:'numeric'}) : '-';
@@ -1046,6 +1046,26 @@ function loadServiceOTs(svcId) {
       tbody.appendChild(tr);
     });
     panel.classList.add('show');
+
+    /* Auto-load the most recent OT into edit mode */
+    if (!IS_EDIT_MODE) {
+      var otId = rows[0].ID;
+      EDIT_ID = otId;
+      IS_EDIT_MODE = true;
+      updateModeUI();
+      var u = new URL(window.location.href);
+      u.searchParams.set('ID', String(EDIT_ID));
+      window.history.replaceState({}, '', u.toString());
+
+      loadExistingOrder()
+        .then(loadExistingSubItems)
+        .then(loadExistingAttachments)
+        .then(function() {
+          showToast('OT #' + EDIT_ID + ' cargada para edici\u00f3n', 'info', 3000);
+        }).catch(function(e) {
+          showToast('Error cargando OT: ' + e.message, 'error', 4000);
+        });
+    }
   }).catch(function() { /* silent */ });
 }
 
