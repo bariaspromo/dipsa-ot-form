@@ -467,6 +467,8 @@ var OT_LIST_TITLE = 'Ordenes de Trabajo';
 var SVC_LIST_GUID = '9e3c3545-22e4-4e68-8d9f-5a0eb3d9803f';
 var MAT_LIST_TITLE = 'Materiales Repuestos OT';
 var EQ_LIST_TITLE  = 'Equipos Necesarios OT';
+var RESUMEN_LIST_TITLE = 'Resumen Servicios';
+var INFORMES_LIST_TITLE = 'Informes Servicios';
 var SVCS = []; // loaded dynamically
 var URL_PARAMS = new URLSearchParams(window.location.search);
 var EDIT_ID = parseInt(URL_PARAMS.get('ID') || URL_PARAMS.get('id') || '0', 10) || 0;
@@ -1425,6 +1427,174 @@ function validate() {
 }
 
 /* ================================================================
+   SYNC RESUMEN + INFORMES - Update/Create on save
+   ================================================================ */
+function syncResumenYInformes(otData, materiales, digest) {
+  var noseg = otData.NoSeguimiento;
+  if (!noseg) return Promise.resolve();
+
+  /* Get service number text */
+  var selServ = document.getElementById('fServ');
+  var numServicio = 'Sin servicio';
+  if (selServ.value) {
+    var opt = selServ.options[selServ.selectedIndex];
+    var m = (opt.textContent || '').match(/^(\d+)/);
+    if (m) numServicio = m[1];
+  }
+
+  /* Get client name */
+  var cliente = document.getElementById('fCli') ? document.getElementById('fCli').value.trim() || 'DIPSA' : 'DIPSA';
+
+  /* Calculate totals from materials */
+  var totalGastos = 0;
+  materiales.forEach(function(m) { totalGastos += (parseFloat(m.Precio) || 0) * (parseFloat(m.Cantidad) || 1); });
+  var itbis = totalGastos * 0.18;
+  var totalFactura = totalGastos + itbis;
+
+  /* Tipo trabajo */
+  var tt = [];
+  document.querySelectorAll('#tTrab input:checked').forEach(function(c) { tt.push(c.value); });
+  var tipoTrabajo = tt.join(', ');
+
+  /* Mano de obra */
+  var mo = [];
+  document.querySelectorAll('#manoObra input:checked').forEach(function(c) { mo.push(c.value); });
+  var manoObra = mo.join(', ');
+
+  /* Articulos text */
+  var arts = materiales.map(function(m) { return m.Descripcion || m.Codigo || ''; }).filter(Boolean);
+  var articulosText = arts.length ? 'Artículos: ' + arts.join(', ') : 'Sin artículos';
+
+  var mr = document.querySelector('input[name=tMant]:checked');
+
+  /* Common resumen fields */
+  var resumenFields = {
+    Title: 'OT-' + noseg,
+    NoSeguimiento: noseg,
+    NumeroServicio: numServicio,
+    Estado: otData.Clasificacion || 'Abierta',
+    Proveedor: cliente,
+    SolicitadoPor: document.getElementById('iS') ? document.getElementById('iS').textContent.trim() || '' : '',
+    CodigoEquipo: otData.CodigoEquipo || '',
+    NombreEquipo: otData.NombreEquipo || '',
+    LugarMantenimiento: otData.Lugar_x0020_del_x0020_mantenimie || '',
+    TipoTrabajo: tipoTrabajo,
+    TipoMantenimiento: mr ? mr.value : '',
+    TrabajoSolicitado: otData.TrabajoSolicitado || '',
+    TrabajoEjecutado: otData.TrabajoEjecutado || '',
+    ManoDeObra: manoObra,
+    MaterialesRepuestos: otData.MaterialesRepuestos || '',
+    Observaciones: otData.Observaciones || '',
+    TecnicoResponsable: otData.TecnicoResponsable || '',
+    TiempoEjecucion: otData.TiempoEjecucion || '',
+    NotasOT: otData.Notas || '',
+    Articulos: articulosText,
+    TotalGastos: totalGastos,
+    ITBIS: itbis,
+    TotalFactura: totalFactura,
+    Clasificacion: otData.Clasificacion || ''
+  };
+  if (otData.FechaOrden) resumenFields.FechaOrden = otData.FechaOrden;
+  if (otData.FechaInicioMantenimiento) resumenFields.FechaInicioMant = otData.FechaInicioMantenimiento;
+  if (otData.FechaCulminacion) resumenFields.FechaCulminacion = otData.FechaCulminacion;
+
+  /* Step 1: Search existing Resumen */
+  return spFetch(SITE + "/_api/web/lists/getbytitle('" + RESUMEN_LIST_TITLE + "')/items?$filter=NoSeguimiento eq " + noseg + "&$top=1")
+  .then(function(d) {
+    var items = d.d && d.d.results || [];
+    return spFetch(SITE + "/_api/web/lists/getbytitle('" + RESUMEN_LIST_TITLE + "')?$select=ListItemEntityTypeFullName")
+    .then(function(et) {
+      var entityType = et.d.ListItemEntityTypeFullName;
+      resumenFields.__metadata = { type: entityType };
+
+      if (items.length > 0) {
+        /* Update existing Resumen */
+        var rid = items[0].ID || items[0].Id;
+        var updateData = Object.assign({}, resumenFields);
+        delete updateData.NoSeguimiento; /* can't update key field */
+        return spFetch(SITE + "/_api/web/lists/getbytitle('" + RESUMEN_LIST_TITLE + "')/items(" + rid + ")", {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json;odata=verbose',
+            'Content-Type': 'application/json;odata=verbose',
+            'X-RequestDigest': digest,
+            'IF-MATCH': '*',
+            'X-HTTP-Method': 'MERGE'
+          },
+          body: JSON.stringify(updateData)
+        });
+      } else {
+        /* Create new Resumen */
+        return spFetch(SITE + "/_api/web/lists/getbytitle('" + RESUMEN_LIST_TITLE + "')/items", {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json;odata=verbose',
+            'Content-Type': 'application/json;odata=verbose',
+            'X-RequestDigest': digest
+          },
+          body: JSON.stringify(resumenFields)
+        });
+      }
+    });
+  })
+  .then(function() {
+    /* Step 2: Search existing Informe */
+    return spFetch(SITE + "/_api/web/lists/getbytitle('" + INFORMES_LIST_TITLE + "')/items?$filter=NoSeguimiento eq " + noseg + "&$top=1");
+  })
+  .then(function(d) {
+    var items = d.d && d.d.results || [];
+    return spFetch(SITE + "/_api/web/lists/getbytitle('" + INFORMES_LIST_TITLE + "')?$select=ListItemEntityTypeFullName")
+    .then(function(et) {
+      var entityType = et.d.ListItemEntityTypeFullName;
+      var informeData = {
+        __metadata: { type: entityType },
+        Title: 'OT-' + noseg,
+        NoSeguimiento: noseg,
+        NumeroServicio: numServicio,
+        Estado: otData.Clasificacion || 'Abierta',
+        Proveedor: cliente,
+        Cliente: cliente,
+        TotalFactura: totalFactura,
+        TotalGastos: totalGastos,
+        FechaGeneracion: new Date().toISOString()
+      };
+
+      if (items.length > 0) {
+        /* Update existing Informe */
+        var iid = items[0].ID || items[0].Id;
+        var updateInf = Object.assign({}, informeData);
+        delete updateInf.NoSeguimiento;
+        return spFetch(SITE + "/_api/web/lists/getbytitle('" + INFORMES_LIST_TITLE + "')/items(" + iid + ")", {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json;odata=verbose',
+            'Content-Type': 'application/json;odata=verbose',
+            'X-RequestDigest': digest,
+            'IF-MATCH': '*',
+            'X-HTTP-Method': 'MERGE'
+          },
+          body: JSON.stringify(updateInf)
+        });
+      } else {
+        /* Create new Informe */
+        return spFetch(SITE + "/_api/web/lists/getbytitle('" + INFORMES_LIST_TITLE + "')/items", {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json;odata=verbose',
+            'Content-Type': 'application/json;odata=verbose',
+            'X-RequestDigest': digest
+          },
+          body: JSON.stringify(informeData)
+        });
+      }
+    });
+  })
+  .catch(function(e) {
+    console.warn('syncResumenYInformes error (non-blocking):', e);
+  });
+}
+
+/* ================================================================
    GUARDAR - Create OT + sub-list items
    ================================================================ */
 function guardar() {
@@ -1573,6 +1743,9 @@ function guardar() {
   }).then(function() {
     /* Upload attachments */
     return uploadAttachments(targetId, digest);
+  }).then(function() {
+    /* Sync Resumen Servicios + Informes Servicios */
+    return syncResumenYInformes(data, materiales, digest);
   }).then(function() {
     showLoading(false);
     document.getElementById('formBody').style.display = 'none';
