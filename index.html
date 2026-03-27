@@ -234,7 +234,8 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 <b>&#128197; Fecha solicitud:</b> <span id="iF">-</span><br>
 <b>&#128100; Solicitante:</b> <span id="iS">-</span><br>
 <b>&#128205; Ubicaci&oacute;n:</b> <span id="iU">-</span><br>
-<b>&#9993; Asunto:</b> <span id="iA">-</span>
+<b>&#9993; Asunto:</b> <span id="iA">-</span><br>
+<b>&#127919; Estado Planner:</b> <span id="iPlannerStatus" style="font-weight:600">-</span> <span id="iPlannerBucket" style="background:#e1dfdd;padding:2px 8px;border-radius:10px;font-size:11px;margin-left:4px">-</span> <span id="iPlannerLive" style="font-size:10px;color:#107c10;display:none">&#9989; en vivo</span>
 </div>
 <div class="ot-history" id="otHistory">
 <div class="ot-warn"><span class="ot-warn-icon">&#9888;</span><span id="otWarnText"></span></div>
@@ -504,6 +505,10 @@ var msalConfig = {
 };
 var msalInstance = null;
 var SP_SCOPES = ['https://ceprd.sharepoint.com/AllSites.Write'];
+var GRAPH_SCOPES = ['https://graph.microsoft.com/Tasks.Read', 'https://graph.microsoft.com/Group.Read.All'];
+var PLAN_ID = 'Y7bRx3UegUqWVTCbOd5POWUADVoF';
+var CAT_DESC = {};
+var PLANNER_SYNCED = false;
 
 function getAccessToken() {
   var accounts = msalInstance.getAllAccounts();
@@ -534,6 +539,97 @@ function doLogin() {
     document.getElementById('btnLogin').disabled = false;
     document.getElementById('btnLogin').style.display = 'inline-block';
     console.error('Login error:', e);
+  });
+}
+
+function getGraphToken() {
+  var accounts = msalInstance.getAllAccounts();
+  if (!accounts.length) {
+    return msalInstance.acquireTokenPopup({ scopes: GRAPH_SCOPES }).then(function(r) { return r.accessToken; });
+  }
+  return msalInstance.acquireTokenSilent({
+    scopes: GRAPH_SCOPES,
+    account: accounts[0]
+  }).then(function(r) {
+    return r.accessToken;
+  }).catch(function() {
+    return msalInstance.acquireTokenPopup({ scopes: GRAPH_SCOPES }).then(function(r) { return r.accessToken; });
+  });
+}
+
+function refreshPlannerStatus() {
+  return getGraphToken().then(function(token) {
+    var gh = { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' };
+    return Promise.all([
+      fetch('https://graph.microsoft.com/v1.0/planner/plans/' + PLAN_ID + '/tasks?$top=500', { headers: gh }).then(function(r) { return r.json(); }),
+      fetch('https://graph.microsoft.com/v1.0/planner/plans/' + PLAN_ID + '/buckets', { headers: gh }).then(function(r) { return r.json(); }),
+      fetch('https://graph.microsoft.com/v1.0/planner/plans/' + PLAN_ID + '/details', { headers: gh }).then(function(r) { return r.json(); })
+    ]);
+  }).then(function(results) {
+    var tasks = results[0].value || [];
+    var buckets = results[1].value || [];
+    var planDetails = results[2];
+
+    var bucketMap = {};
+    buckets.forEach(function(b) { bucketMap[b.id] = b.name; });
+
+    CAT_DESC = {};
+    if (planDetails.categoryDescriptions) {
+      for (var key in planDetails.categoryDescriptions) {
+        if (planDetails.categoryDescriptions[key]) {
+          CAT_DESC[key] = planDetails.categoryDescriptions[key];
+        }
+      }
+    }
+
+    var taskById = {};
+    var taskByNum = {};
+    tasks.forEach(function(t) {
+      taskById[t.id] = t;
+      var m = (t.title || '').match(/(\d{6})/);
+      if (m) taskByNum[m[1]] = t;
+    });
+
+    var updated = 0;
+    SVCS.forEach(function(svc) {
+      var task = null;
+      if (svc.TaskIdPlanner) task = taskById[svc.TaskIdPlanner];
+      if (!task) {
+        var numM = (svc.Title || '').match(/^(\d{6})/);
+        if (numM) task = taskByNum[numM[1]];
+      }
+      if (task) {
+        var labels = [];
+        if (task.appliedCategories) {
+          for (var cat in task.appliedCategories) {
+            if (task.appliedCategories[cat] && CAT_DESC[cat]) labels.push(CAT_DESC[cat]);
+          }
+        }
+        svc.EstadoPlanner = labels.join(' | ');
+        svc.BucketPlanner = bucketMap[task.bucketId] || '';
+        svc.PlannerPercentComplete = task.percentComplete || 0;
+        updated++;
+      }
+    });
+
+    PLANNER_SYNCED = true;
+    console.log('[Planner Sync] Updated ' + updated + '/' + SVCS.length + ' services from Planner (real-time)');
+
+    /* If a service is already selected, update its Planner fields */
+    var selId = document.getElementById('fServ').value;
+    if (selId) {
+      var svc = SVCS.find(function(s){ return s.Id == selId; });
+      if (svc) {
+        var ep = (svc.EstadoPlanner || '').replace(/\s*\|\s*$/, '').trim();
+        document.getElementById('fClasif').value = ep;
+        document.getElementById('fDepto').value = svc.BucketPlanner || '';
+      }
+    }
+
+    if (updated > 0) showToast('\u2705 Planner actualizado (' + updated + ' servicios)', 'success', 2500);
+  }).catch(function(e) {
+    console.warn('[Planner Sync] Error:', e);
+    /* Silently fall back to cached SP data */
   });
 }
 
@@ -769,7 +865,7 @@ function updateNavLinks() {
    LOAD SERVICES FROM SHAREPOINT
    ================================================================ */
 function loadServices() {
-  var url = SITE + "/_api/web/lists(guid'" + SVC_LIST_GUID + "')/items?$select=Id,Title,Cliente,FechaCreacion,Estado,Descripcion,EstadoPlanner,BucketPlanner&$filter=Estado eq 'Activo'&$orderby=Id desc&$top=200";
+  var url = SITE + "/_api/web/lists(guid'" + SVC_LIST_GUID + "')/items?$select=Id,Title,Cliente,FechaCreacion,Estado,Descripcion,EstadoPlanner,BucketPlanner,TaskIdPlanner&$filter=Estado eq 'Activo'&$orderby=Id desc&$top=200";
   return spFetch(url).then(function(data) {
     SVCS = data.d.results;
     buildCliFilter();
@@ -783,6 +879,8 @@ function loadServices() {
       if (sel.value === svcParam) onServChange();
     }
     showToast(SVCS.length + ' servicios cargados', 'info', 2000);
+    /* Trigger real-time Planner sync in background */
+    refreshPlannerStatus();
     return SVCS;
   }).catch(function(e) {
     showToast('Error cargando servicios: ' + e.message, 'error', 5000);
@@ -1323,6 +1421,14 @@ function onServChange() {
     desc = desc.replace(/\s*:\s*$/, '').trim();
   }
   document.getElementById('iA').textContent = desc || title;
+  /* Show Planner status in card */
+  var ep = (svc.EstadoPlanner || '').replace(/\s*\|\s*$/, '').trim();
+  var bp = svc.BucketPlanner || '';
+  document.getElementById('iPlannerStatus').textContent = ep || 'Sin datos';
+  document.getElementById('iPlannerStatus').style.color = ep ? '#0078d4' : '#a19f9d';
+  document.getElementById('iPlannerBucket').textContent = bp || '-';
+  document.getElementById('iPlannerBucket').style.background = bp ? '#deecf9' : '#e1dfdd';
+  document.getElementById('iPlannerLive').style.display = PLANNER_SYNCED ? 'inline' : 'none';
   card.classList.add('show');
 
   /* Skip form field auto-fill when loading an existing OT */
