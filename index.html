@@ -1506,7 +1506,7 @@ function buildInformeHTML(rf) {
 /* ================================================================
    SYNC RESUMEN + INFORMES - Update/Create on save
    ================================================================ */
-function syncResumenYInformes(otData, materiales, digest) {
+function syncResumenYInformes(otData, materiales, equipos, manoObraItems, digest) {
   var noseg = otData.NoSeguimiento;
   if (!noseg) return Promise.resolve();
   var informesEntityType = '';
@@ -1534,9 +1534,36 @@ function syncResumenYInformes(otData, materiales, digest) {
   document.querySelectorAll('#tTrab input:checked').forEach(function(c) { tt.push(c.value); });
   var tipoTrabajo = tt.join(', ');
 
-  /* Mano de obra from table */
-  var moItems = getMoTableData();
-  var manoObraText = moItems.map(function(m) { return m.Tipo || m.Descripcion || ''; }).filter(Boolean).join(', ');
+  /* Mano de obra - detailed text */
+  var moItems = manoObraItems || getMoTableData();
+  var manoObraText = moItems.map(function(m) {
+    var parts = [];
+    if (m.Cantidad && m.Cantidad > 1) parts.push(m.Cantidad + 'x');
+    if (m.Tipo) parts.push(m.Tipo);
+    if (m.Descripcion) parts.push(m.Descripcion);
+    if (m.Codigo) parts.push('(' + m.Codigo + ')');
+    return parts.join(' ');
+  }).filter(Boolean).join('; ');
+
+  /* Materiales - detailed text from table data */
+  var materialesText = materiales.map(function(m) {
+    var parts = [];
+    if (m.Cantidad && m.Cantidad > 1) parts.push(m.Cantidad + 'x');
+    if (m.Descripcion) parts.push(m.Descripcion);
+    if (m.Codigo) parts.push('(' + m.Codigo + ')');
+    if (m.Precio) parts.push('RD$' + (m.Precio || 0).toFixed(2));
+    return parts.join(' ');
+  }).filter(Boolean).join('; ');
+
+  /* Equipos - detailed text */
+  var eqs = equipos || [];
+  var equiposText = eqs.map(function(e) {
+    var parts = [];
+    if (e.Cantidad && e.Cantidad > 1) parts.push(e.Cantidad + 'x');
+    if (e.Descripcion) parts.push(e.Descripcion);
+    if (e.Codigo) parts.push('(' + e.Codigo + ')');
+    return parts.join(' ');
+  }).filter(Boolean).join('; ');
 
   /* Articulos text */
   var arts = materiales.map(function(m) { return m.Descripcion || m.Codigo || ''; }).filter(Boolean);
@@ -1560,7 +1587,8 @@ function syncResumenYInformes(otData, materiales, digest) {
     TrabajoSolicitado: otData.TrabajoSolicitado || '',
     TrabajoEjecutado: otData.TrabajoEjecutado || '',
     ManoDeObra: manoObraText,
-    MaterialesRepuestos: otData.MaterialesRepuestos || '',
+    MaterialesRepuestos: materialesText,
+    MaterialesNecesarios: equiposText,
     Observaciones: otData.Observaciones || '',
     TecnicoResponsable: otData.TecnicoResponsable || '',
     TiempoEjecucion: otData.TiempoEjecucion || '',
@@ -1882,7 +1910,7 @@ function guardar() {
     return uploadAttachments(targetId, digest);
   }).then(function() {
     /* Sync Resumen Servicios + Informes Servicios */
-    return syncResumenYInformes(data, materiales, digest);
+    return syncResumenYInformes(data, materiales, equipos, manoObra, digest);
   }).then(function() {
     showLoading(false);
     document.getElementById('formBody').style.display = 'none';
