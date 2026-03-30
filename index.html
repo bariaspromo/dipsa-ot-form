@@ -1450,7 +1450,8 @@ function onServChange() {
 
   /* Skip form field auto-fill when loading an existing OT */
   if (!_skipOTLookup) {
-    document.getElementById('fSeg').value = svcNum ? svcNum[1] : '';
+    /* Auto-generate 5-digit NoSeguimiento (NOT the service number) */
+    autoGenerateSeguimiento();
     document.getElementById('fCli').value = 'DIPSA';
     document.getElementById('fLugar').value = ubi || '';
     document.getElementById('fLugarDisplay').value = ubi || '';
