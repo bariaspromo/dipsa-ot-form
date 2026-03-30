@@ -505,7 +505,7 @@ var msalConfig = {
 };
 var msalInstance = null;
 var SP_SCOPES = ['https://ceprd.sharepoint.com/AllSites.Write'];
-var GRAPH_SCOPES = ['https://graph.microsoft.com/Tasks.Read', 'https://graph.microsoft.com/Group.Read.All'];
+var GRAPH_SCOPES = ['https://graph.microsoft.com/Tasks.Read'];
 var PLAN_ID = 'Y7bRx3UegUqWVTCbOd5POWUADVoF';
 var CAT_DESC = {};
 var PLANNER_SYNCED = false;
@@ -896,8 +896,8 @@ function loadServices() {
       if (sel.value === svcParam) onServChange();
     }
     showToast(SVCS.length + ' servicios cargados', 'info', 2000);
-    /* Trigger real-time Planner sync in background */
-    refreshPlannerStatus();
+    /* Trigger real-time Planner sync in background (non-blocking) */
+    try { refreshPlannerStatus().catch(function(e) { console.warn('Planner sync skipped:', e.message); }); } catch(_e) {}
     return SVCS;
   }).catch(function(e) {
     showToast('Error cargando servicios: ' + e.message, 'error', 5000);
