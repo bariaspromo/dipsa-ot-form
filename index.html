@@ -509,6 +509,18 @@ var GRAPH_SCOPES = ['https://graph.microsoft.com/Tasks.Read', 'https://graph.mic
 var PLAN_ID = 'Y7bRx3UegUqWVTCbOd5POWUADVoF';
 var CAT_DESC = {};
 var PLANNER_SYNCED = false;
+var ALLOWED_USERS = ['servicio@cep.com.do'];
+
+function isUserAllowed(username) {
+  return ALLOWED_USERS.indexOf((username || '').toLowerCase()) !== -1;
+}
+
+function showAccessDenied(username) {
+  document.getElementById('authStatus').innerHTML = '<span style="color:#d13438">Acceso denegado</span><br><span style="font-size:12px;color:#605e5c">El usuario <b>' + (username || '') + '</b> no tiene permiso para crear OTs.<br>Solo <b>servicio@cep.com.do</b> puede acceder.</span>';
+  document.getElementById('btnLogin').style.display = 'inline-block';
+  document.getElementById('btnLogin').disabled = false;
+  document.getElementById('btnLogin').textContent = 'Cambiar de cuenta';
+}
 
 function getAccessToken() {
   var accounts = msalInstance.getAllAccounts();
@@ -532,6 +544,11 @@ function doLogin() {
     scopes: SP_SCOPES,
     prompt: 'select_account'
   }).then(function(r) {
+    if (!isUserAllowed(r.account.username)) {
+      showAccessDenied(r.account.username);
+      msalInstance.logoutPopup({ account: r.account }).catch(function(){});
+      return;
+    }
     document.getElementById('authStatus').textContent = 'Autenticado como ' + r.account.username;
     initForm();
   }).catch(function(e) {
@@ -2371,11 +2388,19 @@ if (msalInstance && typeof msalInstance.initialize === 'function') {
   }).then(function(resp) {
     console.log('handleRedirectPromise done', resp);
     if (resp && resp.account) {
+      if (!isUserAllowed(resp.account.username)) {
+        showAccessDenied(resp.account.username);
+        return;
+      }
       document.getElementById('authStatus').textContent = 'Autenticado como ' + resp.account.username;
       return getAccessToken().then(function() { initForm(); });
     }
     var accounts = msalInstance.getAllAccounts();
     if (accounts.length > 0) {
+      if (!isUserAllowed(accounts[0].username)) {
+        showAccessDenied(accounts[0].username);
+        return;
+      }
       document.getElementById('authStatus').textContent = 'Bienvenido ' + accounts[0].username;
       return getAccessToken().then(function() { initForm(); });
     }
@@ -2390,7 +2415,11 @@ if (msalInstance && typeof msalInstance.initialize === 'function') {
   /* MSAL v1 fallback - no initialize needed */
   var accounts = msalInstance.getAllAccounts();
   if (accounts.length > 0) {
-    getAccessToken().then(function() { initForm(); });
+    if (!isUserAllowed(accounts[0].username)) {
+      showAccessDenied(accounts[0].username);
+    } else {
+      getAccessToken().then(function() { initForm(); });
+    }
   } else {
     document.getElementById('authStatus').textContent = 'Haga clic para iniciar sesión';
     document.getElementById('btnLogin').style.display = 'inline-block';
