@@ -2132,7 +2132,7 @@ function guardar() {
     return Promise.all(promises);
   }).then(function() {
     /* Upload attachments */
-    return uploadAttachments(targetId, digest);
+    return uploadAttachments(targetId);
   }).then(function() {
     /* Sync Resumen Servicios + Informes Servicios */
     return syncResumenYInformes(data, materiales, equipos, manoObra, digest);
@@ -2156,7 +2156,8 @@ function guardar() {
     document.querySelectorAll('.progress .dot').forEach(function(d){ d.classList.add('done') });
   }).catch(function(e) {
     showLoading(false);
-    showToast('Error: ' + e.message, 'error', 8000);
+    console.error('guardar() error:', e);
+    showToast('Error: ' + e.message, 'error', 12000);
     document.getElementById('btnGuardar').disabled = false;
   });
 }
@@ -2248,41 +2249,54 @@ function renderAttachPreview() {
   });
 }
 
-function uploadAttachments(itemId, digest) {
-  var promises = [];
-  /* Delete removed attachments */
-  DELETED_ATTACHMENTS.forEach(function(fname) {
-    promises.push(
-      spFetch(SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + itemId + ")/AttachmentFiles('" + encodeURIComponent(fname) + "')", {
-        method: 'POST',
-        headers: { 'X-RequestDigest': digest, 'IF-MATCH': '*', 'X-HTTP-Method': 'DELETE' }
-      })
-    );
-  });
-  /* Upload new files */
-  PENDING_FILES.forEach(function(file) {
-    var p = file.arrayBuffer().then(function(buf) {
-      return getAccessToken().then(function(token) {
-        return fetch(
-          SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + itemId + ")/AttachmentFiles/add(FileName='" + encodeURIComponent(file.name) + "')",
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Bearer ' + token,
-              'X-RequestDigest': digest,
-              'Content-Type': 'application/octet-stream',
-              'Accept': 'application/json;odata=verbose'
-            },
-            body: buf
-          }
-        ).then(function(r) {
-          if (!r.ok) return r.text().then(function(t) { throw new Error('Upload ' + file.name + ': ' + t.substring(0, 200)); });
+function spSafeFileName(name) {
+  /* Remove chars invalid in SharePoint filenames and escape single quotes for OData URLs */
+  return name.replace(/[~"#%&*:<>?\/\\{|}]/g, '_').replace(/'/g, "''");
+}
+
+function uploadAttachments(itemId) {
+  if (!PENDING_FILES.length && !DELETED_ATTACHMENTS.length) return Promise.resolve();
+  /* Get fresh digest to avoid expiration */
+  return getDigest().then(function(freshDigest) {
+    var promises = [];
+    /* Delete removed attachments */
+    DELETED_ATTACHMENTS.forEach(function(fname) {
+      var safeName = spSafeFileName(fname);
+      promises.push(
+        spFetch(SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + itemId + ")/AttachmentFiles('" + encodeURIComponent(safeName) + "')", {
+          method: 'POST',
+          headers: { 'X-RequestDigest': freshDigest, 'IF-MATCH': '*', 'X-HTTP-Method': 'DELETE' }
+        })
+      );
+    });
+    /* Upload new files sequentially to avoid throttling */
+    var uploadChain = Promise.resolve();
+    PENDING_FILES.forEach(function(file) {
+      uploadChain = uploadChain.then(function() {
+        var safeName = spSafeFileName(file.name);
+        return file.arrayBuffer().then(function(buf) {
+          return getAccessToken().then(function(token) {
+            return fetch(
+              SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + itemId + ")/AttachmentFiles/add(FileName='" + encodeURIComponent(safeName) + "')",
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': 'Bearer ' + token,
+                  'X-RequestDigest': freshDigest,
+                  'Accept': 'application/json;odata=verbose'
+                },
+                body: buf
+              }
+            ).then(function(r) {
+              if (!r.ok) return r.text().then(function(t) { throw new Error('Upload ' + file.name + ' (' + r.status + '): ' + t.substring(0, 300)); });
+            });
+          });
         });
       });
     });
-    promises.push(p);
+    promises.push(uploadChain);
+    return Promise.all(promises);
   });
-  return promises.length ? Promise.all(promises) : Promise.resolve();
 }
 
 function loadExistingAttachments() {
