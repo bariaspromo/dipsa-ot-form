@@ -1593,21 +1593,77 @@ function buildInformeHTML(rf) {
   function co(v,d){return v||d||'\u2014';}
   function fd(iso){if(!iso)return'\u2014';try{return iso.substring(8,10)+'/'+iso.substring(5,7)+'/'+iso.substring(0,4)}catch(e){return'\u2014';}}
   function fm(n){return(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
   var ns=co(rf.NoSeguimiento),ti=co(rf.Title),es=co(rf.Estado),nsvc=co(rf.NumeroServicio),prov=co(rf.Proveedor),sol=co(rf.SolicitadoPor),ceq=co(rf.CodigoEquipo),neq=co(rf.NombreEquipo),tt=co(rf.TipoTrabajo),tm=co(rf.TipoMantenimiento),tec=co(rf.TecnicoResponsable),tej=co(rf.TiempoEjecucion),lug=co(rf.LugarMantenimiento),fo=fd(rf.FechaOrden),fi=fd(rf.FechaInicioMant),fc=fd(rf.FechaCulminacion);
   var tg=parseFloat(rf.TotalGastos)||0,ib=parseFloat(rf.ITBIS)||0,tf=parseFloat(rf.TotalFactura)||0;
-  var tsol=co(rf.TrabajoSolicitado,'No especificado'),teject=co(rf.TrabajoEjecutado,'No especificado'),mo=co(rf.ManoDeObra,'No especificado'),mat=co(rf.MaterialesRepuestos,'No especificado'),art=co(rf.Articulos,'Sin artículos'),obs=co(rf.Observaciones,'Sin observaciones'),not=co(rf.NotasOT,'Sin notas'),histRaw=co(rf.HistorialEstados,'Sin historial');
+  var tsol=co(rf.TrabajoSolicitado,'No especificado'),teject=co(rf.TrabajoEjecutado,'No especificado'),obs=co(rf.Observaciones,'Sin observaciones'),not=co(rf.NotasOT,'Sin notas'),histRaw=co(rf.HistorialEstados,'Sin historial');
   /* Clean repeated URLs from historial */
   var hist=histRaw.replace(/https?:\/\/[^\s]+/g,'').replace(/\|\s*\|/g,'|').replace(/^\s*\|/gm,'').replace(/\|\s*$/gm,'').replace(/\n{2,}/g,'\n').trim()||'Sin historial';
   var bg=es==='Cerrada'?'background:#dcfce7;color:#166534':es==='En Proceso'?'background:#dbeafe;color:#1e40af':'background:#fef3c7;color:#92400e';
+
+  /* Planner / extra fields */
+  var depto=co(rf.Departamento);
+  var pprog=parseFloat(rf.PlannerProgress)||0;
+  var pcats=co(rf.PlannerCategories);
+  var frepo=co(rf.FormaReporte);
+
+  /* Parse structured JSON for tables (fallback to flat text) */
+  var moArr=[];try{moArr=JSON.parse(rf.ManoDeObraJSON||'[]');}catch(e){}
+  var matArr=[];try{matArr=JSON.parse(rf.MaterialesJSON||'[]');}catch(e){}
+  var eqArr=[];try{eqArr=JSON.parse(rf.EquiposJSON||'[]');}catch(e){}
+
+  /* Build MO table */
+  var moHtml='';
+  if(moArr.length){
+    moHtml='<table class="dtbl"><thead><tr><th>C\u00f3digo</th><th>Cant.</th><th>Descripci\u00f3n</th><th>Tipo</th></tr></thead><tbody>';
+    moArr.forEach(function(m){moHtml+='<tr><td>'+esc(m.Codigo)+'</td><td>'+(m.Cantidad||1)+'</td><td>'+esc(m.Descripcion)+'</td><td>'+esc(m.Tipo)+'</td></tr>';});
+    moHtml+='</tbody></table>';
+  } else {
+    moHtml='<p class="ftxt">'+esc(co(rf.ManoDeObra,'No especificado'))+'</p>';
+  }
+
+  /* Build Materials table */
+  var matHtml='';
+  if(matArr.length){
+    matHtml='<table class="dtbl"><thead><tr><th>C\u00f3digo</th><th>Cant.</th><th>Descripci\u00f3n</th><th>Precio</th><th>Proveedor</th><th>RNC</th></tr></thead><tbody>';
+    matArr.forEach(function(m){matHtml+='<tr><td>'+esc(m.Codigo)+'</td><td>'+(m.Cantidad||1)+'</td><td>'+esc(m.Descripcion)+'</td><td class="money">RD$ '+fm(m.Precio)+'</td><td>'+esc(m.Proveedor)+'</td><td>'+esc(m.RNC)+'</td></tr>';});
+    matHtml+='</tbody></table>';
+  } else {
+    matHtml='<p class="ftxt">'+esc(co(rf.MaterialesRepuestos,'No especificado'))+'</p>';
+  }
+
+  /* Build Equipment table */
+  var eqHtml='';
+  if(eqArr.length){
+    eqHtml='<table class="dtbl"><thead><tr><th>C\u00f3digo</th><th>Cant.</th><th>Descripci\u00f3n</th><th>Precio</th><th>Proveedor</th></tr></thead><tbody>';
+    eqArr.forEach(function(e){eqHtml+='<tr><td>'+esc(e.Codigo)+'</td><td>'+(e.Cantidad||1)+'</td><td>'+esc(e.Descripcion)+'</td><td class="money">RD$ '+fm(e.Precio)+'</td><td>'+esc(e.Proveedor)+'</td></tr>';});
+    eqHtml+='</tbody></table>';
+  } else {
+    var eqTxt=co(rf.MaterialesNecesarios,'');
+    eqHtml=eqTxt?'<p class="ftxt">'+esc(eqTxt)+'</p>':'';
+  }
+
+  /* Planner progress bar */
+  var progColor=pprog>=100?'#059669':pprog>=50?'#2563eb':'#d97706';
+  var plannerSection='';
+  if(pprog||depto!=='\u2014'||pcats!=='\u2014'){
+    plannerSection='<div class="section"><div class="section-title">4. Estado Planner</div><div class="info-grid"><div class="info-col"><table class="info"><tr><td class="lbl">Departamento:</td><td>'+esc(depto)+'</td></tr><tr><td class="lbl">Categor\u00edas:</td><td>'+esc(pcats)+'</td></tr><tr><td class="lbl">Forma de Reporte:</td><td>'+esc(frepo)+'</td></tr></table></div><div class="info-col"><h4>Progreso</h4><div style="background:#e2e8f0;border-radius:6px;height:18px;margin-top:6px;overflow:hidden"><div style="width:'+pprog+'%;height:100%;background:'+progColor+';border-radius:6px;transition:width .3s"></div></div><div style="text-align:center;font-size:10px;font-weight:700;color:'+progColor+';margin-top:3px">'+pprog+'%</div></div></div></div>';
+  }
+
   return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Informe Servicio #'+ns+' - '+ti+'</title>'
-+'<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Segoe UI,sans-serif;font-size:11px;color:#1e293b;background:#f1f5f9}.page{width:21.59cm;min-height:27.94cm;margin:24px auto;background:white;box-shadow:0 4px 24px rgba(0,0,0,0.12);border-radius:4px}.header{background:linear-gradient(135deg,#0f2b4a,#1e3a5f,#2563eb);color:white;padding:28px 32px 24px;display:flex;justify-content:space-between}.header .brand h1{font-size:22px;font-weight:700}.header .brand .sub{font-size:13px;opacity:.85}.header .meta{text-align:right;font-size:11px;opacity:.8}.header .meta strong{display:block;font-size:13px;opacity:1}.kpi-strip{display:flex;border-bottom:2px solid #e2e8f0}.kpi{flex:1;padding:16px 20px;text-align:center;border-right:1px solid #e2e8f0}.kpi:last-child{border-right:none}.kpi .val{font-size:22px;font-weight:700;color:#1e3a5f}.kpi .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:#64748b;margin-top:3px}.section{padding:20px 32px}.section-title{font-size:14px;font-weight:700;color:#0f2b4a;border-bottom:2px solid #2563eb;padding-bottom:6px;margin-bottom:14px;text-transform:uppercase}.info-grid{display:flex;gap:24px;margin-bottom:16px}.info-col{flex:1}.info-col h4{font-size:10px;text-transform:uppercase;color:#64748b;margin-bottom:6px;border-bottom:1px solid #e2e8f0;padding-bottom:3px}table.info{width:100%;font-size:10px;border-collapse:collapse}table.info td{padding:3px 0}table.info .lbl{color:#64748b;font-weight:600;width:130px;padding-right:8px}.badge{display:inline-block;padding:3px 12px;border-radius:10px;font-size:10px;font-weight:700}.money{font-family:Consolas,monospace;font-weight:600}.footer{padding:12px 32px;border-top:2px solid #e2e8f0;display:flex;justify-content:space-between;font-size:9px;color:#94a3b8}@media print{body{background:white}.page{box-shadow:none;margin:0}.toolbar{display:none!important}}</style></head><body>'
++'<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Segoe UI,sans-serif;font-size:11px;color:#1e293b;background:#f1f5f9}.page{width:21.59cm;min-height:27.94cm;margin:24px auto;background:white;box-shadow:0 4px 24px rgba(0,0,0,0.12);border-radius:4px}.header{background:linear-gradient(135deg,#0f2b4a,#1e3a5f,#2563eb);color:white;padding:28px 32px 24px;display:flex;justify-content:space-between}.header .brand h1{font-size:22px;font-weight:700}.header .brand .sub{font-size:13px;opacity:.85}.header .meta{text-align:right;font-size:11px;opacity:.8}.header .meta strong{display:block;font-size:13px;opacity:1}.kpi-strip{display:flex;border-bottom:2px solid #e2e8f0}.kpi{flex:1;padding:16px 20px;text-align:center;border-right:1px solid #e2e8f0}.kpi:last-child{border-right:none}.kpi .val{font-size:22px;font-weight:700;color:#1e3a5f}.kpi .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:#64748b;margin-top:3px}.section{padding:20px 32px}.section-title{font-size:14px;font-weight:700;color:#0f2b4a;border-bottom:2px solid #2563eb;padding-bottom:6px;margin-bottom:14px;text-transform:uppercase}.info-grid{display:flex;gap:24px;margin-bottom:16px}.info-col{flex:1}.info-col h4{font-size:10px;text-transform:uppercase;color:#64748b;margin-bottom:6px;border-bottom:1px solid #e2e8f0;padding-bottom:3px}table.info{width:100%;font-size:10px;border-collapse:collapse}table.info td{padding:3px 0}table.info .lbl{color:#64748b;font-weight:600;width:130px;padding-right:8px}.badge{display:inline-block;padding:3px 12px;border-radius:10px;font-size:10px;font-weight:700}.money{font-family:Consolas,monospace;font-weight:600}.footer{padding:12px 32px;border-top:2px solid #e2e8f0;display:flex;justify-content:space-between;font-size:9px;color:#94a3b8}.dtbl{width:100%;font-size:10px;border-collapse:collapse;margin-top:6px}.dtbl th{background:#f1f5f9;color:#475569;font-weight:700;text-align:left;padding:5px 8px;border-bottom:2px solid #cbd5e1;font-size:9px;text-transform:uppercase}.dtbl td{padding:4px 8px;border-bottom:1px solid #e2e8f0}.dtbl tr:last-child td{border-bottom:none}.ftxt{font-size:10px;color:#334155;white-space:pre-line}@media print{body{background:white}.page{box-shadow:none;margin:0}.toolbar{display:none!important}}</style></head><body>'
 +'<div class="toolbar" style="position:sticky;top:0;background:#0f172a;padding:12px 32px;display:flex;justify-content:space-between;align-items:center;z-index:9999"><span style="color:#94a3b8;font-size:13px">Informe Servicio #'+ns+' \u2014 '+ti+'</span><button onclick="window.print()" style="background:#2563eb;color:white;border:none;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer">Imprimir</button></div>'
 +'<div class="page"><div class="header"><div class="brand"><h1>Informe Ejecutivo</h1><div class="sub">Servicio #'+ns+' \u2014 '+ti+'</div></div><div class="meta"><strong>OPERACIONES DIPSA</strong>'+nowStr.substring(0,10)+'<br>Generado: '+nowStr+'</div></div>'
 +'<div class="kpi-strip"><div class="kpi"><div class="val">#'+ns+'</div><div class="lbl">No. Seguimiento</div></div><div class="kpi"><div class="val" style="font-size:14px">'+nsvc+'</div><div class="lbl">No. Servicio</div></div><div class="kpi"><div class="val"><span class="badge" style="'+bg+'">'+es+'</span></div><div class="lbl">Estado</div></div><div class="kpi"><div class="val" style="color:#059669;font-size:16px">RD$ '+fm(tf)+'</div><div class="lbl">Total Factura</div></div><div class="kpi"><div class="val" style="color:#d97706;font-size:16px">RD$ '+fm(tg)+'</div><div class="lbl">Total Gastos</div></div></div>'
 +'<div class="section"><div class="section-title">1. Informaci\u00f3n General</div><div class="info-grid"><div class="info-col"><h4>Servicio</h4><table class="info"><tr><td class="lbl">OT / T\u00edtulo:</td><td>'+ti+'</td></tr><tr><td class="lbl">No. Seguimiento:</td><td>'+ns+'</td></tr><tr><td class="lbl">No. Servicio:</td><td>'+nsvc+'</td></tr><tr><td class="lbl">Estado:</td><td>'+es+'</td></tr><tr><td class="lbl">Cliente:</td><td>'+prov+'</td></tr><tr><td class="lbl">Solicitado por:</td><td>'+sol+'</td></tr></table></div><div class="info-col"><h4>Equipo y Mantenimiento</h4><table class="info"><tr><td class="lbl">C\u00f3digo Equipo:</td><td>'+ceq+'</td></tr><tr><td class="lbl">Nombre Equipo:</td><td>'+neq+'</td></tr><tr><td class="lbl">Tipo Trabajo:</td><td>'+tt+'</td></tr><tr><td class="lbl">Tipo Mant.:</td><td>'+tm+'</td></tr><tr><td class="lbl">T\u00e9cnico:</td><td>'+tec+'</td></tr><tr><td class="lbl">Tiempo Ejec.:</td><td>'+tej+'</td></tr><tr><td class="lbl">Lugar:</td><td>'+lug+'</td></tr></table></div></div>'
 +'<div class="info-grid"><div class="info-col"><h4>Fechas</h4><table class="info"><tr><td class="lbl">Fecha Orden:</td><td>'+fo+'</td></tr><tr><td class="lbl">Inicio Mant.:</td><td>'+fi+'</td></tr><tr><td class="lbl">Culminaci\u00f3n:</td><td>'+fc+'</td></tr></table></div><div class="info-col"><h4>Costos</h4><table class="info"><tr><td class="lbl">Total Gastos:</td><td class="money">RD$ '+fm(tg)+'</td></tr><tr><td class="lbl">ITBIS:</td><td class="money">RD$ '+fm(ib)+'</td></tr><tr><td class="lbl" style="border-top:1px solid #cbd5e1;padding-top:5px">Total Factura:</td><td class="money" style="color:#059669;font-size:12px;border-top:1px solid #cbd5e1;padding-top:5px">RD$ '+fm(tf)+'</td></tr></table></div></div></div>'
-+'<div class="section"><div class="section-title">2. Descripci\u00f3n del Trabajo</div><div class="info-grid"><div class="info-col"><h4>Trabajo Solicitado</h4><p style="font-size:10px;color:#334155;white-space:pre-line">'+tsol+'</p></div><div class="info-col"><h4>Trabajo Ejecutado</h4><p style="font-size:10px;color:#334155;white-space:pre-line">'+teject+'</p></div></div><div class="info-grid"><div class="info-col"><h4>Mano de Obra</h4><p style="font-size:10px;color:#334155;white-space:pre-line">'+mo+'</p></div><div class="info-col"><h4>Materiales y Repuestos</h4><p style="font-size:10px;color:#334155;white-space:pre-line">'+mat+'</p></div></div><div class="info-grid"><div class="info-col"><h4>Art\u00edculos / Desglose</h4><p style="font-size:10px;color:#334155;white-space:pre-line">'+art+'</p></div></div><div class="info-grid"><div class="info-col"><h4>Observaciones</h4><p style="font-size:10px;color:#334155;white-space:pre-line">'+obs+'</p></div><div class="info-col"><h4>Notas OT</h4><p style="font-size:10px;color:#334155;white-space:pre-line">'+not+'</p></div></div></div>'
++'<div class="section"><div class="section-title">2. Descripci\u00f3n del Trabajo</div><div class="info-grid"><div class="info-col"><h4>Trabajo Solicitado</h4><p class="ftxt">'+esc(tsol)+'</p></div><div class="info-col"><h4>Trabajo Ejecutado</h4><p class="ftxt">'+esc(teject)+'</p></div></div>'
++'<div class="info-grid"><div class="info-col"><h4>Mano de Obra</h4>'+moHtml+'</div></div>'
++'<div class="info-grid"><div class="info-col"><h4>Materiales y Repuestos</h4>'+matHtml+'</div></div>'
++(eqHtml?'<div class="info-grid"><div class="info-col"><h4>Equipos Necesarios</h4>'+eqHtml+'</div></div>':'')
++'<div class="info-grid"><div class="info-col"><h4>Observaciones</h4><p class="ftxt">'+esc(obs)+'</p></div><div class="info-col"><h4>Notas OT</h4><p class="ftxt">'+esc(not)+'</p></div></div></div>'
 +'<div class="section"><div class="section-title">3. Historial de Estados</div><div style="font-size:10px;color:#475569;font-family:Consolas,monospace;white-space:pre-line">'+hist+'</div></div>'
++plannerSection
 +'<div class="footer"><span>Operaciones DIPSA \u2014 Informe Servicio #'+ns+'</span><span>Generado autom\u00e1ticamente el '+nowStr+'</span></div></div></body></html>';
 }
 
@@ -1679,6 +1735,24 @@ function syncResumenYInformes(otData, materiales, equipos, manoObraItems, digest
 
   var mr = document.querySelector('input[name=tMant]:checked');
 
+  /* Planner data from SVCS array */
+  var plannerDepto = '';
+  var plannerProgress = 0;
+  var plannerCats = '';
+  var selServ2 = document.getElementById('fServ');
+  if (selServ2 && selServ2.value) {
+    var svcObj = SVCS.find(function(s){ return s.Id == selServ2.value; });
+    if (svcObj) {
+      plannerDepto = svcObj.BucketPlanner || '';
+      plannerProgress = svcObj.PlannerPercentComplete || 0;
+      plannerCats = svcObj.EstadoPlanner || '';
+    }
+  }
+  if (!plannerDepto) plannerDepto = document.getElementById('fDepto') ? document.getElementById('fDepto').value || '' : '';
+
+  /* Forma de Reporte */
+  var fRep = (function(){ var r = document.querySelector('input[name=fReporte]:checked'); return r ? r.value : ''; })();
+
   /* Common resumen fields */
   var resumenFields = {
     Title: 'OT-' + noseg,
@@ -1705,7 +1779,14 @@ function syncResumenYInformes(otData, materiales, equipos, manoObraItems, digest
     TotalGastos: totalGastos,
     ITBIS: itbis,
     TotalFactura: totalFactura,
-    Clasificacion: otData.Clasificacion || ''
+    Clasificacion: otData.Clasificacion || '',
+    ManoDeObraJSON: JSON.stringify(moItems),
+    MaterialesJSON: JSON.stringify(materiales),
+    EquiposJSON: JSON.stringify(eqs),
+    Departamento: plannerDepto,
+    PlannerProgress: plannerProgress,
+    PlannerCategories: plannerCats,
+    FormaReporte: fRep
   };
   if (otData.FechaOrden) resumenFields.FechaOrden = otData.FechaOrden;
   if (otData.FechaInicioMantenimiento) resumenFields.FechaInicioMant = otData.FechaInicioMantenimiento;
