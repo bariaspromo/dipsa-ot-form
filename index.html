@@ -1888,8 +1888,7 @@ function syncResumenYInformes(otData, materiales, equipos, manoObraItems, digest
         Cliente: cliente,
         TotalFactura: totalFactura,
         TotalGastos: totalGastos,
-        FechaGeneracion: new Date().toISOString(),
-        HistorialEstados: resumenFields.HistorialEstados || ''
+        FechaGeneracion: new Date().toISOString()
       };
 
       if (items.length > 0) {
@@ -1962,8 +1961,13 @@ function syncResumenYInformes(otData, materiales, equipos, manoObraItems, digest
       });
     });
   })
+  .then(function() {
+    console.log('syncResumenYInformes: OK - Resumen + Informes + HTML actualizados para NoSeg=' + noseg);
+    showToast('Informe #' + noseg + ' sincronizado correctamente', 'success', 3000);
+  })
   .catch(function(e) {
-    console.warn('syncResumenYInformes error (non-blocking):', e);
+    console.error('syncResumenYInformes ERROR:', e);
+    showToast('Error sincronizando informe: ' + (e.message || e), 'error', 5000);
   });
 }
 
