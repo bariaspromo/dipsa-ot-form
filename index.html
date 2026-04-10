@@ -1021,7 +1021,7 @@ function populateServiceDropdown() {
 function loadExistingOrder() {
   if (!IS_EDIT_MODE) return Promise.resolve();
   return spFetch(
-    SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + EDIT_ID + ")?$select=ID,Title,NoSeguimiento,NumeroServicioId,CodigoEquipo,NombreEquipo,Lugar_x0020_del_x0020_mantenimie,TipoMantenimiento,TipoTrabajo,TrabajoSolicitado,TrabajoEjecutado,Observaciones,TecnicoResponsable,TiempoEjecucion,Notas,Clasificacion,FechaInicioMantenimiento,FechaCulminacion,FechaOrden,Departamento,Forma_x0020_de_x0020_Reporte"
+    SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + EDIT_ID + ")?$select=ID,Title,NoSeguimiento,NoOrden,NumeroServicioId,CodigoEquipo,NombreEquipo,Lugar_x0020_del_x0020_mantenimie,TipoMantenimiento,TipoTrabajo,TrabajoSolicitado,TrabajoEjecutado,Observaciones,TecnicoResponsable,TiempoEjecucion,Notas,Clasificacion,FechaInicioMantenimiento,FechaCulminacion,FechaOrden,Departamento,Forma_x0020_de_x0020_Reporte"
   ).then(function(d) {
     var item = d.d;
     console.debug('[loadExistingOrder] OT #' + EDIT_ID, {
@@ -1036,6 +1036,7 @@ function loadExistingOrder() {
       onServChange();
     }
     document.getElementById('fSeg').value = item.NoSeguimiento || '';
+    window._loadedNoOrden = item.NoOrden || null;
     document.getElementById('fCodEq').value = item.CodigoEquipo || '';
     document.getElementById('fNomEq').value = item.NombreEquipo || '';
     document.getElementById('fLugar').value = item.Lugar_x0020_del_x0020_mantenimie || '';
@@ -1691,7 +1692,7 @@ function buildInformeHTML(rf) {
    SYNC RESUMEN + INFORMES - Update/Create on save
    ================================================================ */
 function syncResumenYInformes(otData, materiales, equipos, manoObraItems, digest) {
-  var noseg = otData.NoSeguimiento;
+  var noseg = otData.NoOrden || otData.NoSeguimiento;
   if (!noseg) return Promise.resolve();
   var informesEntityType = '';
 
@@ -2142,6 +2143,7 @@ function guardar() {
     return uploadAttachments(targetId);
   }).then(function() {
     /* Sync Resumen Servicios + Informes Servicios */
+    if (IS_EDIT_MODE && window._loadedNoOrden) data.NoOrden = window._loadedNoOrden;
     return syncResumenYInformes(data, materiales, equipos, manoObra, digest);
   }).then(function() {
     showLoading(false);
