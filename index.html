@@ -1033,9 +1033,13 @@ function loadExistingOrder() {
     });
     if (item.NumeroServicioId) {
       document.getElementById('fServ').value = String(item.NumeroServicioId);
+      _skipOTLookup = true;
       onServChange();
+      _skipOTLookup = false;
     }
     document.getElementById('fSeg').value = item.NoSeguimiento || '';
+    document.getElementById('fSeg').readOnly = true;
+    document.getElementById('fSeg').style.background = '#f5f5f5';
     window._loadedNoOrden = item.NoOrden || null;
     document.getElementById('fCodEq').value = item.CodigoEquipo || '';
     document.getElementById('fNomEq').value = item.NombreEquipo || '';
@@ -1992,7 +1996,6 @@ function guardar() {
   /* Build OT data */
   var data = {
     NumeroServicioId: parseInt(document.getElementById('fServ').value) || null,
-    NoSeguimiento: parseInt(document.getElementById('fSeg').value) || null,
     CodigoEquipo: document.getElementById('fCodEq').value.trim() || null,
     NombreEquipo: document.getElementById('fNomEq').value.trim() || null,
     Lugar_x0020_del_x0020_mantenimie: document.getElementById('fLugar').value || null,
@@ -2010,6 +2013,11 @@ function guardar() {
 
   /* Multi-choice fields */
   if (tt.length) data.TipoTrabajo = { results: tt };
+
+  /* NoSeguimiento solo en creación, NUNCA en edición */
+  if (!IS_EDIT_MODE) {
+    data.NoSeguimiento = parseInt(document.getElementById('fSeg').value) || null;
+  }
 
   /* DateTime fields */
   var fi = document.getElementById('fFI').value;
