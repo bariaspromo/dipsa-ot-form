@@ -67,6 +67,8 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f3f2f1;
 .tbl-wrap th{background:#f3f2f1;padding:8px 10px;text-align:left;font-weight:600;border:1px solid #edebe9}
 .tbl-wrap td{padding:6px 10px;border:1px solid #edebe9}
 .tbl-wrap td input{width:100%;border:1px solid #c8c6c4;border-radius:3px;padding:5px 8px;font-size:13px;font-family:inherit}
+.tbl-wrap td input[type=number]{text-align:center;font-weight:600;font-size:14px;-moz-appearance:textfield;padding:5px 4px}
+.tbl-wrap td input[type=number]::-webkit-outer-spin-button,.tbl-wrap td input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .tbl-wrap td input:focus{outline:none;border-color:#0078d4}
 .tbl-wrap .btn-add{margin-top:6px;padding:5px 14px;font-size:12px;cursor:pointer;background:#f0f6ff;border:1px solid #c7e0f4;border-radius:4px;color:#0078d4;font-weight:600}
 .tbl-wrap .btn-add:hover{background:#deecf9}
@@ -343,7 +345,7 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 <div class="tbl-wrap">
 <label style="font-size:13px;font-weight:600;margin-bottom:6px;display:block">Mano de Obra</label>
 <table id="tblMo">
-<thead><tr><th style="width:80px">C&oacute;digo</th><th style="width:60px">Cant.</th><th>Descripci&oacute;n</th><th style="width:140px">Tipo</th><th style="width:30px"></th></tr></thead>
+<thead><tr><th style="width:80px">C&oacute;digo</th><th style="width:80px">Cant.</th><th>Descripci&oacute;n</th><th style="width:140px">Tipo</th><th style="width:30px"></th></tr></thead>
 <tbody id="tbodyMo"></tbody>
 </table>
 <button type="button" class="btn-add" onclick="addMoRow()">+ Agregar mano de obra</button>
@@ -353,7 +355,7 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 <div class="tbl-wrap">
 <label style="font-size:13px;font-weight:600;margin-bottom:6px;display:block">Materiales y Repuestos</label>
 <table id="tblMat">
-<thead><tr><th style="width:80px">C&oacute;digo</th><th style="width:60px">Cant.</th><th>Descripci&oacute;n</th><th style="width:90px">Precio</th><th style="width:120px">Proveedor</th><th style="width:100px">RNC</th><th style="width:70px">Propio</th><th style="width:30px"></th></tr></thead>
+<thead><tr><th style="width:80px">C&oacute;digo</th><th style="width:80px">Cant.</th><th>Descripci&oacute;n</th><th style="width:90px">Precio</th><th style="width:120px">Proveedor</th><th style="width:100px">RNC</th><th style="width:70px">Propio</th><th style="width:30px"></th></tr></thead>
 <tbody id="tbodyMat"></tbody>
 </table>
 <button type="button" class="btn-add" onclick="addMatRow()">+ Agregar material</button>
@@ -363,7 +365,7 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 <div class="tbl-wrap">
 <label style="font-size:13px;font-weight:600;margin-bottom:6px;display:block">Equipos Necesarios</label>
 <table id="tblEq">
-<thead><tr><th style="width:80px">C&oacute;digo</th><th style="width:60px">Cant.</th><th>Descripci&oacute;n</th><th style="width:90px">Precio</th><th style="width:120px">Proveedor</th><th style="width:100px">RNC</th><th style="width:50px">Propio</th><th style="width:30px">&#10005;</th></tr></thead>
+<thead><tr><th style="width:80px">C&oacute;digo</th><th style="width:80px">Cant.</th><th>Descripci&oacute;n</th><th style="width:90px">Precio</th><th style="width:120px">Proveedor</th><th style="width:100px">RNC</th><th style="width:50px">Propio</th><th style="width:30px">&#10005;</th></tr></thead>
 <tbody id="tbodyEq"></tbody>
 </table>
 <button type="button" class="btn-add" onclick="addEqRow()">+ Agregar equipo</button>
