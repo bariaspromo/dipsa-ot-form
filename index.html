@@ -1783,14 +1783,14 @@ function syncResumenYInformes(otData, materiales, equipos, manoObraItems, digest
 
   /* Normalize estado values from Planner */
   function normalizarEstado(e) {
-    if (!e) return 'Abierta';
+    if (!e) return 'ABIERTA';
     var m = {
-      'COMPLETADO': 'Completada', 'ACOMPLETADO': 'Completada', 'COMPLETADA': 'Completada',
-      'EN CURSO': 'En Curso', 'EN_CURSO': 'En Curso', 'ENCURSO': 'En Curso',
-      'ABIERTA': 'Abierta', 'ABIERTO': 'Abierta',
-      'CERRADA': 'Cerrada', 'CERRADO': 'Cerrada'
+      'COMPLETADO': 'COMPLETADO', 'ACOMPLETADO': 'COMPLETADO', 'COMPLETADA': 'COMPLETADO',
+      'EN CURSO': 'EN CURSO', 'EN_CURSO': 'EN CURSO', 'ENCURSO': 'EN CURSO',
+      'ABIERTA': 'ABIERTA', 'ABIERTO': 'ABIERTA',
+      'CERRADA': 'CERRADA', 'CERRADO': 'CERRADA'
     };
-    return m[e.toUpperCase().trim()] || e;
+    return m[e.toUpperCase().trim()] || e.toUpperCase().trim();
   }
 
   /* Common resumen fields */
