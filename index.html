@@ -646,11 +646,14 @@ function refreshPlannerStatus() {
     }
 
     if (updated > 0) {
-      /* Re-populate dropdown with fresh Planner status */
+      /* Re-populate filters and dropdown with fresh Planner status */
+      buildCliFilter();
+      buildUbiFilter();
       var prevVal = document.getElementById('fServ').value;
       populateServiceDropdown();
       if (prevVal) document.getElementById('fServ').value = prevVal;
-      showToast('\u2705 Planner actualizado (' + updated + ' servicios)', 'success', 2500);
+      var enCurso = getEnCursoSvcs().length;
+      showToast('\u2705 Planner actualizado (' + enCurso + ' servicios en curso)', 'success', 2500);
     }
   }).catch(function(e) {
     console.warn('[Planner Sync] Error:', e);
@@ -944,16 +947,26 @@ function extractSvcClient(s) {
   return '';
 }
 
+function getEnCursoSvcs() {
+  var editSvcId = IS_EDIT_MODE ? (URL_PARAMS.get('SVC') || URL_PARAMS.get('svc') || '') : '';
+  return SVCS.filter(function(s) {
+    if (editSvcId && String(s.Id) === String(editSvcId)) return true;
+    var ep = (s.EstadoPlanner || '').toUpperCase();
+    return ep.indexOf('EN CURSO') > -1;
+  });
+}
+
 function buildCliFilter() {
   var filter = document.getElementById('fFilterCli');
   if (!filter) return;
+  var filtered = PLANNER_SYNCED ? getEnCursoSvcs() : SVCS;
   var clients = {};
-  SVCS.forEach(function(s) {
+  filtered.forEach(function(s) {
     var cli = extractSvcClient(s);
     if (cli) clients[cli] = (clients[cli] || 0) + 1;
   });
   var prev = filter.value;
-  filter.innerHTML = '<option value="">-- Todos los clientes (' + SVCS.length + ') --</option>';
+  filter.innerHTML = '<option value="">-- Todos los clientes (' + filtered.length + ') --</option>';
   Object.keys(clients).sort().forEach(function(cli) {
     var o = document.createElement('option');
     o.value = cli;
@@ -966,13 +979,14 @@ function buildCliFilter() {
 function buildUbiFilter() {
   var filter = document.getElementById('fFilterUbi');
   if (!filter) return;
+  var filtered = PLANNER_SYNCED ? getEnCursoSvcs() : SVCS;
   var locs = {};
-  SVCS.forEach(function(s) {
+  filtered.forEach(function(s) {
     var loc = extractSvcLocation(s);
     if (loc) locs[loc] = (locs[loc] || 0) + 1;
   });
   var prev = filter.value;
-  filter.innerHTML = '<option value="">-- Todas las ubicaciones (' + SVCS.length + ') --</option>';
+  filter.innerHTML = '<option value="">-- Todas las ubicaciones (' + filtered.length + ') --</option>';
   Object.keys(locs).sort().forEach(function(loc) {
     var o = document.createElement('option');
     o.value = loc;
