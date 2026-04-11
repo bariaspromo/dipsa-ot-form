@@ -965,7 +965,7 @@ function getEnCursoSvcs() {
 function buildCliFilter() {
   var filter = document.getElementById('fFilterCli');
   if (!filter) return;
-  var filtered = PLANNER_SYNCED ? getEnCursoSvcs() : SVCS;
+  var filtered = getEnCursoSvcs();
   var clients = {};
   filtered.forEach(function(s) {
     var cli = extractSvcClient(s);
@@ -985,7 +985,7 @@ function buildCliFilter() {
 function buildUbiFilter() {
   var filter = document.getElementById('fFilterUbi');
   if (!filter) return;
-  var filtered = PLANNER_SYNCED ? getEnCursoSvcs() : SVCS;
+  var filtered = getEnCursoSvcs();
   var locs = {};
   filtered.forEach(function(s) {
     var loc = extractSvcLocation(s);
