@@ -949,11 +949,17 @@ function extractSvcClient(s) {
 
 function getEnCursoSvcs() {
   var editSvcId = IS_EDIT_MODE ? (URL_PARAMS.get('SVC') || URL_PARAMS.get('svc') || '') : '';
-  return SVCS.filter(function(s) {
+  var filtered = SVCS.filter(function(s) {
     if (editSvcId && String(s.Id) === String(editSvcId)) return true;
     var ep = (s.EstadoPlanner || '').toUpperCase();
     return ep.indexOf('EN CURSO') > -1;
   });
+  var uniqueMap = {};
+  filtered.forEach(function(s) {
+    var key = (s.Title || '').trim();
+    if (!uniqueMap[key] || s.Id > uniqueMap[key].Id) uniqueMap[key] = s;
+  });
+  return Object.values(uniqueMap).sort(function(a,b){ return b.Id - a.Id; });
 }
 
 function buildCliFilter() {
@@ -1001,20 +1007,8 @@ function populateServiceDropdown() {
   sel.innerHTML = '';
   var filterLoc = (document.getElementById('fFilterUbi') || {}).value || '';
   var filterCli = (document.getElementById('fFilterCli') || {}).value || '';
-  /* Deduplicar por Title exacto (quedarse con el de mayor Id) */
-  var uniqueMap = {};
-  SVCS.forEach(function(s) {
-    var key = (s.Title || '').trim();
-    if (!uniqueMap[key] || s.Id > uniqueMap[key].Id) uniqueMap[key] = s;
-  });
-  var unique = Object.values(uniqueMap).sort(function(a,b){ return b.Id - a.Id; });
-  /* Solo mostrar servicios EN CURSO (excepto el servicio actual en modo edición) */
-  var editSvcId = IS_EDIT_MODE ? (URL_PARAMS.get('SVC') || URL_PARAMS.get('svc') || '') : '';
-  unique = unique.filter(function(s) {
-    if (editSvcId && String(s.Id) === String(editSvcId)) return true;
-    var ep = (s.EstadoPlanner || '').toUpperCase();
-    return ep.indexOf('EN CURSO') > -1;
-  });
+  /* getEnCursoSvcs ya deduplica y filtra por EN CURSO */
+  var unique = getEnCursoSvcs();
   /* Aplicar filtro de cliente */
   if (filterCli) {
     unique = unique.filter(function(s) {
