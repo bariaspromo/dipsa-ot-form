@@ -1696,11 +1696,9 @@ function buildInformeHTML(rf) {
    SYNC RESUMEN + INFORMES - Update/Create on save
    ================================================================ */
 function syncResumenYInformes(otData, materiales, equipos, manoObraItems, digest) {
-  var noseg = otData.NoOrden || otData.NoSeguimiento;
-  if (!noseg) return Promise.resolve();
   var informesEntityType = '';
 
-  /* Get service number text */
+  /* Get service number text — this is the PRIMARY identifier for Resumen/Informes */
   var selServ = document.getElementById('fServ');
   var numServicio = 'Sin servicio';
   if (selServ.value) {
@@ -1708,6 +1706,11 @@ function syncResumenYInformes(otData, materiales, equipos, manoObraItems, digest
     var m = (opt.textContent || '').match(/^(\d+)/);
     if (m) numServicio = m[1];
   }
+
+  /* Use service number as identifier (matches existing Resumen/Informes entries).
+     Fallback to NoOrden or NoSeguimiento only if service number is unavailable. */
+  var noseg = (numServicio !== 'Sin servicio') ? numServicio : (otData.NoOrden || otData.NoSeguimiento);
+  if (!noseg) return Promise.resolve();
 
   /* Get client name */
   var cliente = document.getElementById('fCli') ? document.getElementById('fCli').value.trim() || 'DIPSA' : 'DIPSA';
@@ -2151,7 +2154,11 @@ function guardar() {
     return uploadAttachments(targetId);
   }).then(function() {
     /* Sync Resumen Servicios + Informes Servicios */
-    if (IS_EDIT_MODE && window._loadedNoOrden) data.NoOrden = window._loadedNoOrden;
+    if (IS_EDIT_MODE) {
+      if (window._loadedNoOrden) data.NoOrden = window._loadedNoOrden;
+      /* Always provide NoSeguimiento for sync (read from form, not sent to SP) */
+      data.NoSeguimiento = parseInt(document.getElementById('fSeg').value) || null;
+    }
     return syncResumenYInformes(data, materiales, equipos, manoObra, digest);
   }).then(function() {
     showLoading(false);
