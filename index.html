@@ -645,7 +645,13 @@ function refreshPlannerStatus() {
       }
     }
 
-    if (updated > 0) showToast('\u2705 Planner actualizado (' + updated + ' servicios)', 'success', 2500);
+    if (updated > 0) {
+      /* Re-populate dropdown with fresh Planner status */
+      var prevVal = document.getElementById('fServ').value;
+      populateServiceDropdown();
+      if (prevVal) document.getElementById('fServ').value = prevVal;
+      showToast('\u2705 Planner actualizado (' + updated + ' servicios)', 'success', 2500);
+    }
   }).catch(function(e) {
     console.warn('[Planner Sync] Error:', e);
     /* Silently fall back to cached SP data */
@@ -988,6 +994,13 @@ function populateServiceDropdown() {
     if (!uniqueMap[key] || s.Id > uniqueMap[key].Id) uniqueMap[key] = s;
   });
   var unique = Object.values(uniqueMap).sort(function(a,b){ return b.Id - a.Id; });
+  /* Solo mostrar servicios EN CURSO (excepto el servicio actual en modo edición) */
+  var editSvcId = IS_EDIT_MODE ? (URL_PARAMS.get('SVC') || URL_PARAMS.get('svc') || '') : '';
+  unique = unique.filter(function(s) {
+    if (editSvcId && String(s.Id) === String(editSvcId)) return true;
+    var ep = (s.EstadoPlanner || '').toUpperCase();
+    return ep.indexOf('EN CURSO') > -1;
+  });
   /* Aplicar filtro de cliente */
   if (filterCli) {
     unique = unique.filter(function(s) {
