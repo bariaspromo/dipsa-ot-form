@@ -1781,12 +1781,24 @@ function syncResumenYInformes(otData, materiales, equipos, manoObraItems, digest
   /* Forma de Reporte */
   var fRep = (function(){ var r = document.querySelector('input[name=fReporte]:checked'); return r ? r.value : ''; })();
 
+  /* Normalize estado values from Planner */
+  function normalizarEstado(e) {
+    if (!e) return 'Abierta';
+    var m = {
+      'COMPLETADO': 'Completada', 'ACOMPLETADO': 'Completada', 'COMPLETADA': 'Completada',
+      'EN CURSO': 'En Curso', 'EN_CURSO': 'En Curso', 'ENCURSO': 'En Curso',
+      'ABIERTA': 'Abierta', 'ABIERTO': 'Abierta',
+      'CERRADA': 'Cerrada', 'CERRADO': 'Cerrada'
+    };
+    return m[e.toUpperCase().trim()] || e;
+  }
+
   /* Common resumen fields */
   var resumenFields = {
     Title: 'OT-' + noseg,
     NoSeguimiento: noseg,
     NumeroServicio: numServicio,
-    Estado: otData.Clasificacion || 'Abierta',
+    Estado: normalizarEstado(otData.Clasificacion),
     Proveedor: cliente,
     SolicitadoPor: document.getElementById('iS') ? document.getElementById('iS').textContent.trim() || '' : '',
     CodigoEquipo: otData.CodigoEquipo || '',
@@ -1823,7 +1835,7 @@ function syncResumenYInformes(otData, materiales, equipos, manoObraItems, digest
   /* Build timestamp for historial */
   var ahora = new Date();
   var tsHist = ahora.getFullYear() + '-' + ('0'+(ahora.getMonth()+1)).slice(-2) + '-' + ('0'+ahora.getDate()).slice(-2) + ' ' + ('0'+ahora.getHours()).slice(-2) + ':' + ('0'+ahora.getMinutes()).slice(-2);
-  var nuevoEstado = otData.Clasificacion || 'Abierta';
+  var nuevoEstado = normalizarEstado(otData.Clasificacion);
   var usuario = (msalInstance.getAllAccounts()[0] || {}).name || 'Sistema';
 
   /* Step 1: Search existing Resumen */
@@ -1891,7 +1903,7 @@ function syncResumenYInformes(otData, materiales, equipos, manoObraItems, digest
         Title: 'OT-' + noseg,
         NoSeguimiento: noseg,
         NumeroServicio: numServicio,
-        Estado: otData.Clasificacion || 'Abierta',
+        Estado: normalizarEstado(otData.Clasificacion),
         Proveedor: cliente,
         Cliente: cliente,
         TotalFactura: totalFactura,
