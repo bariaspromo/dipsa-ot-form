@@ -654,11 +654,45 @@ function refreshPlannerStatus() {
       if (prevVal) document.getElementById('fServ').value = prevVal;
       var enCurso = getEnCursoSvcs().length;
       showToast('\u2705 Planner actualizado (' + enCurso + ' servicios en curso)', 'success', 2500);
+
+      /* Write-back EstadoPlanner to SharePoint so it persists */
+      writeBackEstadoPlanner();
     }
   }).catch(function(e) {
     console.warn('[Planner Sync] Error:', e);
     /* Silently fall back to cached SP data */
   });
+}
+
+function writeBackEstadoPlanner() {
+  /* Write updated EstadoPlanner back to SharePoint in background */
+  getToken().then(function(token) {
+    var h = {
+      'Authorization': 'Bearer ' + token,
+      'Accept': 'application/json;odata=nometadata',
+      'Content-Type': 'application/json;odata=nometadata',
+      'IF-MATCH': '*',
+      'X-HTTP-Method': 'MERGE'
+    };
+    var changed = SVCS.filter(function(s) {
+      return s._estadoPlannerOriginal !== undefined && s._estadoPlannerOriginal !== (s.EstadoPlanner || '');
+    });
+    if (!changed.length) { console.log('[WriteBack] No changes to write'); return; }
+    console.log('[WriteBack] Writing ' + changed.length + ' EstadoPlanner updates to SharePoint');
+    var chain = Promise.resolve();
+    changed.forEach(function(svc) {
+      chain = chain.then(function() {
+        return fetch(SP_SITE + "/_api/web/lists/getbytitle('Servicios Activos')/items(" + svc.Id + ")",
+          { method: 'POST', headers: h, body: JSON.stringify({ EstadoPlanner: svc.EstadoPlanner || '' }) }
+        ).then(function(r) {
+          if (r.ok) {
+            svc._estadoPlannerOriginal = svc.EstadoPlanner || '';
+            console.log('[WriteBack] Updated ' + svc.Title + ' -> ' + svc.EstadoPlanner);
+          }
+        }).catch(function() {});
+      });
+    });
+  }).catch(function(e) { console.warn('[WriteBack] Error:', e); });
 }
 
 function updateModeUI() {
@@ -896,6 +930,8 @@ function loadServices() {
   var url = SITE + "/_api/web/lists(guid'" + SVC_LIST_GUID + "')/items?$select=Id,Title,Cliente,FechaCreacion,Estado,Descripcion,EstadoPlanner,BucketPlanner,TaskIdPlanner&$filter=Estado eq 'Activo'&$orderby=Id desc&$top=200";
   return spFetch(url).then(function(data) {
     SVCS = data.d.results;
+    /* Save original EstadoPlanner so write-back can detect changes */
+    SVCS.forEach(function(s) { s._estadoPlannerOriginal = s.EstadoPlanner || ''; });
     buildCliFilter();
     buildUbiFilter();
     populateServiceDropdown();
