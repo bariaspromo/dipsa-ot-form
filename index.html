@@ -355,7 +355,7 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 <div class="tbl-wrap">
 <label style="font-size:13px;font-weight:600;margin-bottom:6px;display:block">Materiales y Repuestos</label>
 <table id="tblMat">
-<thead><tr><th style="width:80px">C&oacute;digo</th><th style="width:80px">Cant.</th><th>Descripci&oacute;n</th><th style="width:90px">Precio</th><th style="width:120px">Proveedor</th><th style="width:100px">RNC</th><th style="width:70px">Propio</th><th style="width:30px"></th></tr></thead>
+<thead><tr><th style="width:90px">NFC</th><th style="width:80px">Cant.</th><th style="width:120px">Fecha</th><th>Descripci&oacute;n</th><th style="width:90px">Precio</th><th style="width:120px">Proveedor</th><th style="width:100px">RNC</th><th style="width:70px">Propio</th><th style="width:80px">ITBIS</th><th style="width:30px"></th></tr></thead>
 <tbody id="tbodyMat"></tbody>
 </table>
 <button type="button" class="btn-add" onclick="addMatRow()">+ Agregar material</button>
@@ -1573,17 +1573,33 @@ function onServChange() {
 function addMatRow() {
   var tbody = document.getElementById('tbodyMat');
   var tr = document.createElement('tr');
-  tr.innerHTML = '<td><input type="text" placeholder="C\u00F3digo"></td><td><input type="number" min="0" step="1" value="1"></td><td><input type="text" placeholder="Descripci\u00F3n"></td><td><input type="number" min="0" step="0.01" placeholder="0.00"></td><td><input type="text" placeholder="Proveedor"></td><td><input type="text" placeholder="RNC" maxlength="20"></td><td style="text-align:center"><input type="checkbox" title="Material propio"></td><td><button class="btn-del" onclick="this.closest(\'tr\').remove()" title="Eliminar">&times;</button></td>';
+  tr.innerHTML = '<td><input type="text" placeholder="NFC"></td><td><input type="number" min="0" step="1" value="1"></td><td><input type="date"></td><td><input type="text" placeholder="Descripci\u00F3n"></td><td><input type="number" min="0" step="0.01" placeholder="0.00"></td><td><input type="text" placeholder="Proveedor"></td><td><input type="text" placeholder="RNC" maxlength="20"></td><td style="text-align:center"><input type="checkbox" title="Material propio"></td><td><input type="number" min="0" step="0.01" placeholder="0.00" readonly style="background:#f8f8f8"></td><td><button class="btn-del" onclick="this.closest(\'tr\').remove()" title="Eliminar">&times;</button></td>';
   tbody.appendChild(tr);
-  /* When Material Propio checked, clear and disable Proveedor+RNC */
+
   var inputs = tr.querySelectorAll('input');
-  var chk = inputs[6];
+  var chk = inputs[7];
+  var qtyInput = inputs[1];
+  var priceInput = inputs[4];
+  var itbisInput = inputs[8];
+
+  function refreshMaterialItbis() {
+    var qty = parseFloat(qtyInput.value) || 0;
+    var precio = parseFloat(priceInput.value) || 0;
+    var calc = (precio * qty) * 0.18;
+    itbisInput.value = Number.isFinite(calc) ? calc.toFixed(2) : '0.00';
+  }
+
+  qtyInput.addEventListener('input', refreshMaterialItbis);
+  priceInput.addEventListener('input', refreshMaterialItbis);
+
   chk.addEventListener('change', function() {
-    inputs[4].disabled = chk.checked;
     inputs[5].disabled = chk.checked;
-    if (chk.checked) { inputs[4].value = ''; inputs[5].value = ''; inputs[4].style.background='#f0f0f0'; inputs[5].style.background='#f0f0f0'; }
-    else { inputs[4].style.background=''; inputs[5].style.background=''; }
+    inputs[6].disabled = chk.checked;
+    if (chk.checked) { inputs[5].value = ''; inputs[6].value = ''; inputs[5].style.background='#f0f0f0'; inputs[6].style.background='#f0f0f0'; }
+    else { inputs[5].style.background=''; inputs[6].style.background=''; }
   });
+
+  refreshMaterialItbis();
 }
 
 function addEqRow() {
@@ -1628,16 +1644,21 @@ function getTableData(tbodyId) {
   var rows = [];
   document.querySelectorAll('#' + tbodyId + ' tr').forEach(function(tr) {
     var inputs = tr.querySelectorAll('input');
-    var codigo = inputs[0].value.trim();
-    var cantidad = parseFloat(inputs[1].value) || 0;
-    var desc = inputs[2].value.trim();
-    var precio = parseFloat(inputs[3].value) || 0;
-    var prov = inputs[4].value.trim();
-    var rnc = inputs[5] ? inputs[5].value.trim() : '';
-    var propio = inputs[6] ? inputs[6].checked : false;
+    var codigo = inputs[0] ? inputs[0].value.trim() : '';
+    var cantidad = parseFloat(inputs[1] ? inputs[1].value : 0) || 0;
+    var desc = inputs[3] ? inputs[3].value.trim() : '';
+    var fecha = inputs[2] ? inputs[2].value : '';
+    var precio = parseFloat(inputs[4] ? inputs[4].value : 0) || 0;
+    var prov = inputs[5] ? inputs[5].value.trim() : '';
+    var rnc = inputs[6] ? inputs[6].value.trim() : '';
+    var propio = inputs[7] ? inputs[7].checked : false;
+    var itbis = inputs[8] ? parseFloat(inputs[8].value) || 0 : 0;
     if (desc || codigo) {
       var item = { Codigo: codigo, Cantidad: cantidad, Descripcion: desc, Precio: precio, Proveedor: propio ? '' : prov, Title: desc || codigo };
       if (tbodyId === 'tbodyMat') {
+        item.NFC = codigo;
+        item.Fecha = fecha;
+        item.ITBIS = itbis;
         item.RNC = propio ? '' : rnc;
         item.MaterialPropio = propio;
       }
