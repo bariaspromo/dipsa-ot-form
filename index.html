@@ -545,18 +545,7 @@ function showAccessDenied(username) {
 }
 
 function getAccessToken() {
-  var accounts = msalInstance.getAllAccounts();
-  if (!accounts.length) {
-    return msalInstance.acquireTokenPopup({ scopes: SP_SCOPES }).then(function(r) { return r.accessToken; });
-  }
-  return msalInstance.acquireTokenSilent({
-    scopes: SP_SCOPES,
-    account: accounts[0]
-  }).then(function(r) {
-    return r.accessToken;
-  }).catch(function() {
-    return msalInstance.acquireTokenPopup({ scopes: SP_SCOPES }).then(function(r) { return r.accessToken; });
-  });
+  return Promise.resolve('');
 }
 
 function doLogin() {
@@ -750,10 +739,10 @@ function spFetch(url, opts) {
   opts = opts || {};
   if (!opts.headers) opts.headers = {};
   if (!opts.headers['Accept']) opts.headers['Accept'] = 'application/json;odata=verbose';
-  return getAccessToken().then(function(token) {
-    opts.headers['Authorization'] = 'Bearer ' + token;
-    return fetch(url, opts);
-  }).then(function(r) {
+  delete opts.headers.Authorization;
+  delete opts.headers.authorization;
+  opts.credentials = 'include';
+  return fetch(url, opts).then(function(r) {
     if (!r.ok) return r.text().then(function(t){ throw new Error('HTTP ' + r.status + ': ' + t.substring(0,300)) });
     return r.text().then(function(t) {
       if (!t) return {};
@@ -806,13 +795,11 @@ function setMatPhotoMeta(tr, text) {
 }
 
 function fetchBlobWithAuth(serverRelativeUrl) {
-  return getAccessToken().then(function(token) {
-    return fetch(SITE + "/_api/web/getfilebyserverrelativeurl('" + encodeURIComponent(serverRelativeUrl) + "')/$value", {
-      headers: { 'Authorization': 'Bearer ' + token }
-    }).then(function(r) {
-      if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t.substring(0, 300)); });
-      return r.blob();
-    });
+  return fetch(SITE + "/_api/web/getfilebyserverrelativeurl('" + encodeURIComponent(serverRelativeUrl) + "')/$value", {
+    credentials: 'include'
+  }).then(function(r) {
+    if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t.substring(0, 300)); });
+    return r.blob();
   });
 }
 
@@ -1006,8 +993,6 @@ function loadServices() {
       if (sel.value === svcParam) onServChange();
     }
     showToast(SVCS.length + ' servicios cargados', 'info', 2000);
-    /* Trigger real-time Planner sync in background (non-blocking) */
-    try { refreshPlannerStatus().catch(function(e) { console.warn('Planner sync skipped:', e.message); }); } catch(_e) {}
     return SVCS;
   }).catch(function(e) {
     showToast('Error cargando servicios: ' + e.message, 'error', 5000);
@@ -2413,12 +2398,10 @@ function renderAttachPreview() {
       var img = document.createElement('img');
       img.alt = att.FileName;
       div.appendChild(img);
-      /* Load image with auth */
-      getAccessToken().then(function(token) {
-        fetch(SITE + "/_api/web/getfilebyserverrelativeurl('" + encodeURIComponent(att.ServerRelativeUrl) + "')/$value", {
-          headers: { 'Authorization': 'Bearer ' + token }
-        }).then(function(r) { return r.blob(); }).then(function(b) { img.src = URL.createObjectURL(b); });
-      });
+      /* Load image with the browser's authenticated SharePoint session */
+      fetch(SITE + "/_api/web/getfilebyserverrelativeurl('" + encodeURIComponent(att.ServerRelativeUrl) + "')/$value", {
+        credentials: 'include'
+      }).then(function(r) { return r.blob(); }).then(function(b) { img.src = URL.createObjectURL(b); });
     } else {
       div.innerHTML = '<div class="file-icon">&#128196;</div>';
     }
