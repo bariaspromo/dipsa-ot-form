@@ -69,10 +69,12 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f3f2f1;
 .tbl-wrap td input{width:100%;border:1px solid #c8c6c4;border-radius:3px;padding:5px 8px;font-size:13px;font-family:inherit}
 .tbl-wrap td input[type=number]{text-align:center;font-weight:600;font-size:14px;-moz-appearance:textfield;padding:5px 4px}
 .tbl-wrap td input[type=number]::-webkit-outer-spin-button,.tbl-wrap td input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.tbl-wrap td input[type=file]{padding:4px 0;border:none;font-size:12px}
 .tbl-wrap td input:focus{outline:none;border-color:#0078d4}
 .tbl-wrap .btn-add{margin-top:6px;padding:5px 14px;font-size:12px;cursor:pointer;background:#f0f6ff;border:1px solid #c7e0f4;border-radius:4px;color:#0078d4;font-weight:600}
 .tbl-wrap .btn-add:hover{background:#deecf9}
 .tbl-wrap .btn-del{cursor:pointer;background:none;border:none;color:#d13438;font-size:16px;padding:2px 6px}
+.tbl-wrap .mat-photo-meta{font-size:10px;color:#605e5c;margin-top:3px;line-height:1.2;word-break:break-word}
 .btn-row{display:flex;gap:12px;justify-content:flex-end;padding:20px 28px 0;flex-wrap:wrap}
 .btn{padding:10px 28px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s}
 .btn-primary{background:#0078d4;color:#fff}
@@ -167,9 +169,13 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 <div id="authOverlay" style="position:fixed;top:0;left:0;right:0;bottom:0;background:#f3f2f1;z-index:10000;display:flex;align-items:center;justify-content:center;flex-direction:column">
 <div style="text-align:center;background:#fff;padding:40px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.1)">
 <div style="font-size:48px;margin-bottom:16px">&#128274;</div>
-<h2 style="font-size:18px;color:#323130;margin-bottom:8px">Autenticando...</h2>
-<p id="authStatus" style="color:#605e5c;font-size:14px">Conectando con Microsoft 365</p>
-<button id="btnLogin" style="display:none;margin-top:16px;padding:10px 28px;background:#0078d4;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer" onclick="doLogin()">Iniciar Sesi&oacute;n</button>
+<h2 style="font-size:18px;color:#323130;margin-bottom:8px">Acceso al sistema</h2>
+<p id="authStatus" style="color:#605e5c;font-size:14px;margin-bottom:10px">Ingrese usuario y contraseña</p>
+<div style="display:flex;flex-direction:column;gap:10px;min-width:260px">
+<input id="authUser" type="text" placeholder="Usuario" style="padding:10px 12px;border:1px solid #c8c6c4;border-radius:6px;font-size:14px">
+<input id="authPass" type="password" placeholder="Contraseña" style="padding:10px 12px;border:1px solid #c8c6c4;border-radius:6px;font-size:14px">
+<button id="btnLogin" style="margin-top:6px;padding:10px 28px;background:#0078d4;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer" onclick="doLogin()">Entrar</button>
+</div>
 </div>
 </div>
 
@@ -353,9 +359,9 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 
 <!-- Materiales y Repuestos sub-table -->
 <div class="tbl-wrap">
-<label style="font-size:13px;font-weight:600;margin-bottom:6px;display:block">Materiales y Repuestos</label>
+<label style="font-size:13px;font-weight:600;margin-bottom:6px;display:block">Compras Materiales y Repuestos</label>
 <table id="tblMat">
-<thead><tr><th style="width:90px">NFC</th><th style="width:80px">Cant.</th><th style="width:120px">Fecha</th><th>Descripci&oacute;n</th><th style="width:90px">Precio</th><th style="width:120px">Proveedor</th><th style="width:100px">RNC</th><th style="width:70px">Propio</th><th style="width:80px">ITBIS</th><th style="width:30px"></th></tr></thead>
+<thead><tr><th style="width:120px">Fecha</th><th style="width:120px">Monto</th><th>Foto</th><th style="width:30px"></th></tr></thead>
 <tbody id="tbodyMat"></tbody>
 </table>
 <button type="button" class="btn-add" onclick="addMatRow()">+ Agregar material</button>
@@ -483,6 +489,20 @@ var EDIT_ID = parseInt(URL_PARAMS.get('ID') || URL_PARAMS.get('id') || '0', 10) 
 var IS_EDIT_MODE = EDIT_ID > 0;
 var IS_MANUAL_MODE = false;
 var LOCATION_CHOICES = [];
+var LOCAL_AUTH_KEY = 'cep-local-user';
+var LOCAL_USERS = { admin: 'admin123' };
+
+function isLocalLoggedIn() {
+  return sessionStorage.getItem(LOCAL_AUTH_KEY) === 'admin';
+}
+
+function setLocalLoggedIn(user) {
+  sessionStorage.setItem(LOCAL_AUTH_KEY, user);
+}
+
+function clearLocalLogin() {
+  sessionStorage.removeItem(LOCAL_AUTH_KEY);
+}
 
 /* MSAL.js Authentication */
 var REDIRECT_URI = window.location.origin + '/dipsa-ot-form/';
@@ -521,7 +541,7 @@ function showAccessDenied(username) {
   document.getElementById('authStatus').innerHTML = '<span style="color:#d13438">Acceso denegado</span><br><span style="font-size:12px;color:#605e5c">El usuario <b>' + (username || '') + '</b> no tiene permiso para crear OTs.<br>Solo <b>servicio@cep.com.do</b> puede acceder.</span>';
   document.getElementById('btnLogin').style.display = 'inline-block';
   document.getElementById('btnLogin').disabled = false;
-  document.getElementById('btnLogin').textContent = 'Cambiar de cuenta';
+  document.getElementById('btnLogin').textContent = 'Volver a ingresar';
 }
 
 function getAccessToken() {
@@ -540,25 +560,16 @@ function getAccessToken() {
 }
 
 function doLogin() {
-  document.getElementById('authStatus').textContent = 'Abriendo ventana de login...';
-  document.getElementById('btnLogin').disabled = true;
-  msalInstance.loginPopup({
-    scopes: SP_SCOPES,
-    prompt: 'select_account'
-  }).then(function(r) {
-    if (!isUserAllowed(r.account.username)) {
-      showAccessDenied(r.account.username);
-      msalInstance.logoutPopup({ account: r.account }).catch(function(){});
-      return;
-    }
-    document.getElementById('authStatus').textContent = 'Autenticado como ' + r.account.username;
-    initForm();
-  }).catch(function(e) {
-    document.getElementById('authStatus').textContent = 'Error: ' + e.message;
-    document.getElementById('btnLogin').disabled = false;
-    document.getElementById('btnLogin').style.display = 'inline-block';
-    console.error('Login error:', e);
-  });
+  var user = (document.getElementById('authUser').value || '').trim().toLowerCase();
+  var pass = document.getElementById('authPass').value || '';
+  if (!LOCAL_USERS[user] || LOCAL_USERS[user] !== pass) {
+    document.getElementById('authStatus').innerHTML = '<span style="color:#d13438">Usuario o contraseña inválidos</span>';
+    return;
+  }
+  setLocalLoggedIn(user);
+  document.getElementById('authStatus').textContent = 'Bienvenido ' + user;
+  document.getElementById('authOverlay').style.display = 'none';
+  initForm();
 }
 
 function getGraphToken() {
@@ -778,22 +789,74 @@ function setCheckedByValues(selector, values) {
   });
 }
 
+function matToday() {
+  var d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+
+function isImageAttachmentName(name) {
+  return /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(name || '');
+}
+
+function setMatPhotoMeta(tr, text) {
+  if (!tr) return;
+  var meta = tr.querySelector('.mat-photo-meta');
+  if (meta) meta.textContent = text || '';
+}
+
+function fetchBlobWithAuth(serverRelativeUrl) {
+  return getAccessToken().then(function(token) {
+    return fetch(SITE + "/_api/web/getfilebyserverrelativeurl('" + encodeURIComponent(serverRelativeUrl) + "')/$value", {
+      headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function(r) {
+      if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t.substring(0, 300)); });
+      return r.blob();
+    });
+  });
+}
+
+function loadMatPhotoAttachment(tr, itemId) {
+  if (!tr || !itemId) return Promise.resolve();
+  return spFetch(SITE + "/_api/web/lists/getbytitle('" + MAT_LIST_TITLE + "')/items(" + itemId + ")/AttachmentFiles").then(function(d) {
+    var atts = (d.d && d.d.results) || [];
+    var att = atts.filter(function(a) { return isImageAttachmentName(a.FileName); })[0] || atts[0];
+    if (att) {
+      tr._existingPhoto = { FileName: att.FileName, ServerRelativeUrl: att.ServerRelativeUrl };
+      setMatPhotoMeta(tr, att.FileName);
+    }
+  });
+}
+
+function uploadMatPhotoAttachment(itemId, source, digest) {
+  if (!itemId || !source) return Promise.resolve();
+  var fileName = source.name || (source.file && source.file.name) || (source.existing && source.existing.FileName) || '';
+  if (!fileName) return Promise.resolve();
+  var bodyPromise = source.file
+    ? Promise.resolve(source.file)
+    : fetchBlobWithAuth(source.existing.ServerRelativeUrl);
+
+  return bodyPromise.then(function(body) {
+    return spFetch(SITE + "/_api/web/lists/getbytitle('" + MAT_LIST_TITLE + "')/items(" + itemId + ")/AttachmentFiles/add(FileName='" + encodeURIComponent(spSafeFileName(fileName)) + "')", {
+      method: 'POST',
+      headers: {
+        'X-RequestDigest': digest,
+        'Content-Type': 'application/octet-stream'
+      },
+      body: body
+    });
+  });
+}
+
 function addMatRowWithData(row) {
-  addMatRow();
+  var tr = addMatRow();
   var tbody = document.getElementById('tbodyMat');
-  var tr = tbody.lastElementChild;
   if (!tr) return;
   var inputs = tr.querySelectorAll('input');
-  inputs[0].value = row.Codigo || '';
-  inputs[1].value = row.Cantidad || 1;
-  inputs[2].value = row.Descripcion || '';
-  inputs[3].value = row.Precio || '';
-  inputs[4].value = row.Proveedor || '';
-  inputs[5].value = row.RNC || '';
-  if (row.MaterialPropio) {
-    inputs[6].checked = true;
-    inputs[6].dispatchEvent(new Event('change'));
-  }
+  inputs[0].value = (row.Fecha || '').toString().slice(0, 10) || matToday();
+  inputs[1].value = row.Monto || row.Precio || '';
+  if (row.FotoNombre) setMatPhotoMeta(tr, row.FotoNombre);
+  return tr;
 }
 
 function addEqRowWithData(row) {
@@ -1336,7 +1399,7 @@ function nuevoModoCrear() {
 
 function loadExistingSubItems() {
   if (!IS_EDIT_MODE) return Promise.resolve();
-  var matUrl = SITE + "/_api/web/lists/getbytitle('" + MAT_LIST_TITLE + "')/items?$select=ID,Codigo,Cantidad,Descripcion,Precio,Proveedor,RNC,MaterialPropio&$filter=OrdenTrabajoId eq " + EDIT_ID + "&$orderby=ID asc";
+  var matUrl = SITE + "/_api/web/lists/getbytitle('" + MAT_LIST_TITLE + "')/items?$select=ID,Fecha,Precio&$filter=OrdenTrabajoId eq " + EDIT_ID + "&$orderby=ID asc";
   var eqUrl = SITE + "/_api/web/lists/getbytitle('" + EQ_LIST_TITLE + "')/items?$select=ID,Codigo,Cantidad,Descripcion,Precio,Proveedor,RNC,EquipoPropio&$filter=OrdenTrabajoId eq " + EDIT_ID + "&$orderby=ID asc";
   var moUrl = SITE + "/_api/web/lists/getbytitle('" + MO_LIST_TITLE + "')/items?$select=ID,Codigo,Cantidad,Descripcion,Tipo&$filter=OrdenTrabajoId eq " + EDIT_ID + "&$orderby=ID asc";
 
@@ -1349,13 +1412,18 @@ function loadExistingSubItems() {
     document.getElementById('tbodyEq').innerHTML = '';
     document.getElementById('tbodyMo').innerHTML = '';
 
-    mats.forEach(addMatRowWithData);
+    var photoPromises = [];
+    mats.forEach(function(mat) {
+      var tr = addMatRowWithData(mat);
+      if (tr) photoPromises.push(loadMatPhotoAttachment(tr, mat.ID));
+    });
     eqs.forEach(addEqRowWithData);
     mos.forEach(addMoRowWithData);
 
     if (!mats.length) addMatRow();
     if (!eqs.length) addEqRow();
     if (!mos.length) addMoRow();
+    return Promise.all(photoPromises);
   });
 }
 
@@ -1573,33 +1641,23 @@ function onServChange() {
 function addMatRow() {
   var tbody = document.getElementById('tbodyMat');
   var tr = document.createElement('tr');
-  tr.innerHTML = '<td><input type="text" placeholder="NFC"></td><td><input type="number" min="0" step="1" value="1"></td><td><input type="date"></td><td><input type="text" placeholder="Descripci\u00F3n"></td><td><input type="number" min="0" step="0.01" placeholder="0.00"></td><td><input type="text" placeholder="Proveedor"></td><td><input type="text" placeholder="RNC" maxlength="20"></td><td style="text-align:center"><input type="checkbox" title="Material propio"></td><td><input type="number" min="0" step="0.01" placeholder="0.00" readonly style="background:#f8f8f8"></td><td><button class="btn-del" onclick="this.closest(\'tr\').remove()" title="Eliminar">&times;</button></td>';
+  tr.innerHTML = '<td><input type="date"></td><td><input type="number" min="0" step="0.01" placeholder="0.00"></td><td><input type="file" accept="image/*" title="Cargar foto"><div class="mat-photo-meta"></div></td><td><button class="btn-del" onclick="this.closest(\'tr\').remove()" title="Eliminar">&times;</button></td>';
   tbody.appendChild(tr);
 
   var inputs = tr.querySelectorAll('input');
-  var chk = inputs[7];
-  var qtyInput = inputs[1];
-  var priceInput = inputs[4];
-  var itbisInput = inputs[8];
-
-  function refreshMaterialItbis() {
-    var qty = parseFloat(qtyInput.value) || 0;
-    var precio = parseFloat(priceInput.value) || 0;
-    var calc = (precio * qty) * 0.18;
-    itbisInput.value = Number.isFinite(calc) ? calc.toFixed(2) : '0.00';
-  }
-
-  qtyInput.addEventListener('input', refreshMaterialItbis);
-  priceInput.addEventListener('input', refreshMaterialItbis);
-
-  chk.addEventListener('change', function() {
-    inputs[5].disabled = chk.checked;
-    inputs[6].disabled = chk.checked;
-    if (chk.checked) { inputs[5].value = ''; inputs[6].value = ''; inputs[5].style.background='#f0f0f0'; inputs[6].style.background='#f0f0f0'; }
-    else { inputs[5].style.background=''; inputs[6].style.background=''; }
+  inputs[0].value = matToday();
+  inputs[2].addEventListener('change', function() {
+    var file = this.files && this.files[0];
+    if (file) {
+      tr._photoFile = file;
+      tr._existingPhoto = null;
+      setMatPhotoMeta(tr, file.name);
+    } else {
+      tr._photoFile = null;
+      if (!tr._existingPhoto) setMatPhotoMeta(tr, '');
+    }
   });
-
-  refreshMaterialItbis();
+  return tr;
 }
 
 function addEqRow() {
@@ -1644,24 +1702,38 @@ function getTableData(tbodyId) {
   var rows = [];
   document.querySelectorAll('#' + tbodyId + ' tr').forEach(function(tr) {
     var inputs = tr.querySelectorAll('input');
+    if (tbodyId === 'tbodyMat') {
+      var fecha = inputs[0] ? inputs[0].value : '';
+      var monto = parseFloat(inputs[1] ? inputs[1].value : 0) || 0;
+      var file = tr._photoFile || null;
+      var existingPhoto = tr._existingPhoto || null;
+      if (fecha || monto || file || existingPhoto) {
+        var matItem = {
+          Fecha: fecha || null,
+          Monto: monto,
+          Precio: monto,
+          Title: fecha ? ('Compra ' + fecha) : 'Compra'
+        };
+        if (file) {
+          matItem.PhotoFile = file;
+          matItem.FotoNombre = file.name;
+        } else if (existingPhoto) {
+          matItem.ExistingPhoto = existingPhoto;
+          matItem.FotoNombre = existingPhoto.FileName;
+        }
+        rows.push(matItem);
+      }
+      return;
+    }
     var codigo = inputs[0] ? inputs[0].value.trim() : '';
     var cantidad = parseFloat(inputs[1] ? inputs[1].value : 0) || 0;
-    var desc = inputs[3] ? inputs[3].value.trim() : '';
-    var fecha = inputs[2] ? inputs[2].value : '';
-    var precio = parseFloat(inputs[4] ? inputs[4].value : 0) || 0;
-    var prov = inputs[5] ? inputs[5].value.trim() : '';
-    var rnc = inputs[6] ? inputs[6].value.trim() : '';
-    var propio = inputs[7] ? inputs[7].checked : false;
-    var itbis = inputs[8] ? parseFloat(inputs[8].value) || 0 : 0;
+    var desc = inputs[2] ? inputs[2].value.trim() : '';
+    var precio = parseFloat(inputs[3] ? inputs[3].value : 0) || 0;
+    var prov = inputs[4] ? inputs[4].value.trim() : '';
+    var rnc = inputs[5] ? inputs[5].value.trim() : '';
+    var propio = inputs[6] ? inputs[6].checked : false;
     if (desc || codigo) {
       var item = { Codigo: codigo, Cantidad: cantidad, Descripcion: desc, Precio: precio, Proveedor: propio ? '' : prov, Title: desc || codigo };
-      if (tbodyId === 'tbodyMat') {
-        item.NFC = codigo;
-        item.Fecha = fecha;
-        item.ITBIS = itbis;
-        item.RNC = propio ? '' : rnc;
-        item.MaterialPropio = propio;
-      }
       if (tbodyId === 'tbodyEq') {
         item.RNC = propio ? '' : rnc;
         item.EquipoPropio = propio;
@@ -1728,8 +1800,12 @@ function buildInformeHTML(rf) {
   /* Build Materials table */
   var matHtml='';
   if(matArr.length){
-    matHtml='<table class="dtbl"><thead><tr><th>C\u00f3digo</th><th>Cant.</th><th>Descripci\u00f3n</th><th>Precio</th><th>Proveedor</th><th>RNC</th></tr></thead><tbody>';
-    matArr.forEach(function(m){matHtml+='<tr><td>'+esc(m.Codigo)+'</td><td>'+(m.Cantidad||1)+'</td><td>'+esc(m.Descripcion)+'</td><td class="money">RD$ '+fm(m.Precio)+'</td><td>'+esc(m.Proveedor)+'</td><td>'+esc(m.RNC)+'</td></tr>';});
+    matHtml='<table class="dtbl"><thead><tr><th>Fecha</th><th>Monto</th><th>Foto</th></tr></thead><tbody>';
+    matArr.forEach(function(m){
+      var monto = parseFloat(m.Monto || m.Precio) || 0;
+      var foto = m.FotoNombre || m.PhotoName || '';
+      matHtml+='<tr><td>'+esc(m.Fecha ? String(m.Fecha).slice(0,10) : '')+'</td><td class="money">RD$ '+fm(monto)+'</td><td>'+esc(foto)+'</td></tr>';
+    });
     matHtml+='</tbody></table>';
   } else {
     matHtml='<p class="ftxt">'+esc(co(rf.MaterialesRepuestos,'No especificado'))+'</p>';
@@ -1762,7 +1838,7 @@ function buildInformeHTML(rf) {
 +'<div class="info-grid"><div class="info-col"><h4>Fechas</h4><table class="info"><tr><td class="lbl">Fecha Orden:</td><td>'+fo+'</td></tr><tr><td class="lbl">Inicio Mant.:</td><td>'+fi+'</td></tr><tr><td class="lbl">Culminaci\u00f3n:</td><td>'+fc+'</td></tr></table></div><div class="info-col"><h4>Costos</h4><table class="info"><tr><td class="lbl">Total Gastos:</td><td class="money">RD$ '+fm(tg)+'</td></tr><tr><td class="lbl">ITBIS:</td><td class="money">RD$ '+fm(ib)+'</td></tr><tr><td class="lbl" style="border-top:1px solid #cbd5e1;padding-top:5px">Total Factura:</td><td class="money" style="color:#059669;font-size:12px;border-top:1px solid #cbd5e1;padding-top:5px">RD$ '+fm(tf)+'</td></tr></table></div></div></div>'
 +'<div class="section"><div class="section-title">2. Descripci\u00f3n del Trabajo</div><div class="info-grid"><div class="info-col"><h4>Trabajo Solicitado</h4><p class="ftxt">'+esc(tsol)+'</p></div><div class="info-col"><h4>Trabajo Ejecutado</h4><p class="ftxt">'+esc(teject)+'</p></div></div>'
 +'<div class="info-grid"><div class="info-col"><h4>Mano de Obra</h4>'+moHtml+'</div></div>'
-+'<div class="info-grid"><div class="info-col"><h4>Materiales y Repuestos</h4>'+matHtml+'</div></div>'
++'<div class="info-grid"><div class="info-col"><h4>Compras Materiales y Repuestos</h4>'+matHtml+'</div></div>'
 +(eqHtml?'<div class="info-grid"><div class="info-col"><h4>Equipos Necesarios</h4>'+eqHtml+'</div></div>':'')
 +'<div class="info-grid"><div class="info-col"><h4>Observaciones</h4><p class="ftxt">'+esc(obs)+'</p></div><div class="info-col"><h4>Notas OT</h4><p class="ftxt">'+esc(not)+'</p></div></div></div>'
 +'<div class="section"><div class="section-title">3. Historial de Estados</div><div style="font-size:10px;color:#475569;font-family:Consolas,monospace;white-space:pre-line">'+hist+'</div></div>'
@@ -1795,7 +1871,7 @@ function syncResumenYInformes(otData, materiales, equipos, manoObraItems, digest
 
   /* Calculate totals from materials */
   var totalGastos = 0;
-  materiales.forEach(function(m) { totalGastos += (parseFloat(m.Precio) || 0) * (parseFloat(m.Cantidad) || 1); });
+  materiales.forEach(function(m) { totalGastos += parseFloat(m.Monto || m.Precio) || 0; });
   var itbis = totalGastos * 0.18;
   var totalFactura = totalGastos + itbis;
 
@@ -1818,10 +1894,10 @@ function syncResumenYInformes(otData, materiales, equipos, manoObraItems, digest
   /* Materiales - detailed text from table data */
   var materialesText = materiales.map(function(m) {
     var parts = [];
-    if (m.Cantidad && m.Cantidad > 1) parts.push(m.Cantidad + 'x');
-    if (m.Descripcion) parts.push(m.Descripcion);
-    if (m.Codigo) parts.push('(' + m.Codigo + ')');
-    if (m.Precio) parts.push('RD$' + (m.Precio || 0).toFixed(2));
+    if (m.Fecha) parts.push(String(m.Fecha).slice(0, 10));
+    var monto = parseFloat(m.Monto || m.Precio) || 0;
+    parts.push('RD$' + monto.toFixed(2));
+    if (m.FotoNombre) parts.push('Foto: ' + m.FotoNombre);
     return parts.join(' ');
   }).filter(Boolean).join('; ');
 
@@ -1899,7 +1975,13 @@ function syncResumenYInformes(otData, materiales, equipos, manoObraItems, digest
     TotalFactura: totalFactura,
     Clasificacion: otData.Clasificacion || '',
     ManoDeObraJSON: JSON.stringify(moItems),
-    MaterialesJSON: JSON.stringify(materiales),
+    MaterialesJSON: JSON.stringify(materiales.map(function(m) {
+      return {
+        Fecha: m.Fecha || '',
+        Monto: parseFloat(m.Monto || m.Precio) || 0,
+        FotoNombre: m.FotoNombre || ''
+      };
+    })),
     EquiposJSON: JSON.stringify(eqs),
     Departamento: plannerDepto,
     PlannerProgress: plannerProgress,
@@ -2127,6 +2209,20 @@ function guardar() {
   var materiales = getTableData('tbodyMat');
   var equipos = getTableData('tbodyEq');
   var manoObra = getMoTableData();
+  var materialesPayload = materiales.map(function(m) {
+    return {
+      Fecha: m.Fecha || null,
+      Precio: parseFloat(m.Monto || m.Precio) || 0,
+      Title: m.Title || (m.Fecha ? ('Compra ' + String(m.Fecha).slice(0, 10)) : 'Compra')
+    };
+  });
+  var materialesParaResumen = materiales.map(function(m) {
+    return {
+      Fecha: m.Fecha || '',
+      Monto: parseFloat(m.Monto || m.Precio) || 0,
+      FotoNombre: m.FotoNombre || ''
+    };
+  });
 
   var digest, targetId;
 
@@ -2179,7 +2275,7 @@ function guardar() {
       var pMat = spFetch(SITE + "/_api/web/lists/getbytitle('" + MAT_LIST_TITLE + "')?$select=ListItemEntityTypeFullName")
         .then(function(d) {
           var et = d.d.ListItemEntityTypeFullName;
-          return Promise.all(materiales.map(function(m) {
+          return Promise.all(materialesPayload.map(function(m) {
             m.__metadata = { type: et };
             m.OrdenTrabajoId = targetId;
             return spFetch(SITE + "/_api/web/lists/getbytitle('" + MAT_LIST_TITLE + "')/items", {
@@ -2190,7 +2286,19 @@ function guardar() {
                 'X-RequestDigest': digest
               },
               body: JSON.stringify(m)
+            }).then(function(resp) { return (resp.d && (resp.d.Id || resp.d.ID)) || null; });
+          })).then(function(createdIds) {
+            var uploads = [];
+            createdIds.forEach(function(itemId, idx) {
+              var src = materiales[idx];
+              if (!itemId) return;
+              if (src && src.PhotoFile) {
+                uploads.push(uploadMatPhotoAttachment(itemId, { name: src.PhotoFile.name, file: src.PhotoFile }, digest));
+              } else if (src && src.ExistingPhoto) {
+                uploads.push(uploadMatPhotoAttachment(itemId, { name: src.ExistingPhoto.FileName, existing: src.ExistingPhoto }, digest));
+              }
             });
+            return Promise.all(uploads);
           }));
         });
       promises.push(pMat);
@@ -2249,7 +2357,7 @@ function guardar() {
       /* Always provide NoSeguimiento for sync (read from form, not sent to SP) */
       data.NoSeguimiento = parseInt(document.getElementById('fSeg').value) || null;
     }
-    return syncResumenYInformes(data, materiales, equipos, manoObra, digest);
+    return syncResumenYInformes(data, materialesParaResumen, equipos, manoObra, digest);
   }).then(function() {
     showLoading(false);
     document.getElementById('formBody').style.display = 'none';
@@ -2532,7 +2640,7 @@ if (msalInstance && typeof msalInstance.initialize === 'function') {
       document.getElementById('authStatus').textContent = 'Bienvenido ' + accounts[0].username;
       return getAccessToken().then(function() { initForm(); });
     }
-    document.getElementById('authStatus').textContent = 'Haga clic para iniciar sesión';
+    document.getElementById('authStatus').textContent = 'Ingrese usuario y contraseña';
     document.getElementById('btnLogin').style.display = 'inline-block';
   }).catch(function(e) {
     console.error('MSAL init error:', e);
@@ -2549,7 +2657,7 @@ if (msalInstance && typeof msalInstance.initialize === 'function') {
       getAccessToken().then(function() { initForm(); });
     }
   } else {
-    document.getElementById('authStatus').textContent = 'Haga clic para iniciar sesión';
+    document.getElementById('authStatus').textContent = 'Ingrese usuario y contraseña';
     document.getElementById('btnLogin').style.display = 'inline-block';
   }
 }
