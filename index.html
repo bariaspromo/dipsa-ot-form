@@ -532,6 +532,7 @@ var PLAN_ID = 'Y7bRx3UegUqWVTCbOd5POWUADVoF';
 var CAT_DESC = {};
 var PLANNER_SYNCED = false;
 var ALLOWED_USERS = ['servicio@cep.com.do'];
+var PROXY_BASE = 'http://127.0.0.1:8765';
 
 function isUserAllowed(username) {
   return ALLOWED_USERS.indexOf((username || '').toLowerCase()) !== -1;
@@ -735,14 +736,58 @@ function showLoading(v) {
   document.getElementById('overlay').classList.toggle('show', v);
 }
 
+function toProxyBody(body) {
+  if (body === undefined || body === null) return Promise.resolve({ kind: null, body: null });
+  if (typeof body === 'string') return Promise.resolve({ kind: 'text', body: body });
+  if (body instanceof Blob) {
+    return body.arrayBuffer().then(function(buf) {
+      var bytes = new Uint8Array(buf);
+      var bin = '';
+      for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      return { kind: 'base64', body: btoa(bin) };
+    });
+  }
+  if (body instanceof ArrayBuffer) {
+    var bytes2 = new Uint8Array(body);
+    var bin2 = '';
+    for (var j = 0; j < bytes2.length; j++) bin2 += String.fromCharCode(bytes2[j]);
+    return Promise.resolve({ kind: 'base64', body: btoa(bin2) });
+  }
+  if (ArrayBuffer.isView(body)) {
+    var bytes3 = new Uint8Array(body.buffer, body.byteOffset, body.byteLength);
+    var bin3 = '';
+    for (var k = 0; k < bytes3.length; k++) bin3 += String.fromCharCode(bytes3[k]);
+    return Promise.resolve({ kind: 'base64', body: btoa(bin3) });
+  }
+  return Promise.resolve({ kind: 'json', body: body });
+}
+
+function proxyFetchRaw(url, opts) {
+  opts = opts || {};
+  var headers = {};
+  Object.keys(opts.headers || {}).forEach(function(k) { headers[k] = opts.headers[k]; });
+  return toProxyBody(opts.body).then(function(bodyInfo) {
+    return fetch(PROXY_BASE + '/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: url,
+        method: opts.method || 'GET',
+        headers: headers,
+        bodyKind: bodyInfo.kind,
+        body: bodyInfo.body
+      })
+    });
+  });
+}
+
 function spFetch(url, opts) {
   opts = opts || {};
   if (!opts.headers) opts.headers = {};
   if (!opts.headers['Accept']) opts.headers['Accept'] = 'application/json;odata=verbose';
   delete opts.headers.Authorization;
   delete opts.headers.authorization;
-  opts.credentials = 'include';
-  return fetch(url, opts).then(function(r) {
+  return proxyFetchRaw(url, opts).then(function(r) {
     if (!r.ok) return r.text().then(function(t){ throw new Error('HTTP ' + r.status + ': ' + t.substring(0,300)) });
     return r.text().then(function(t) {
       if (!t) return {};
@@ -795,8 +840,8 @@ function setMatPhotoMeta(tr, text) {
 }
 
 function fetchBlobWithAuth(serverRelativeUrl) {
-  return fetch(SITE + "/_api/web/getfilebyserverrelativeurl('" + encodeURIComponent(serverRelativeUrl) + "')/$value", {
-    credentials: 'include'
+  return proxyFetchRaw(SITE + "/_api/web/getfilebyserverrelativeurl('" + encodeURIComponent(serverRelativeUrl) + "')/$value", {
+    method: 'GET'
   }).then(function(r) {
     if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t.substring(0, 300)); });
     return r.blob();
@@ -2398,9 +2443,9 @@ function renderAttachPreview() {
       var img = document.createElement('img');
       img.alt = att.FileName;
       div.appendChild(img);
-      /* Load image with the browser's authenticated SharePoint session */
-      fetch(SITE + "/_api/web/getfilebyserverrelativeurl('" + encodeURIComponent(att.ServerRelativeUrl) + "')/$value", {
-        credentials: 'include'
+      /* Load image through the local app-authenticated proxy */
+      proxyFetchRaw(SITE + "/_api/web/getfilebyserverrelativeurl('" + encodeURIComponent(att.ServerRelativeUrl) + "')/$value", {
+        method: 'GET'
       }).then(function(r) { return r.blob(); }).then(function(b) { img.src = URL.createObjectURL(b); });
     } else {
       div.innerHTML = '<div class="file-icon">&#128196;</div>';
