@@ -1080,19 +1080,28 @@ function loadNextSeguimiento() {
 }
 
 function extractSvcLocation(s) {
-  if (!s || !s.Cliente) return '';
-  var lm = s.Cliente.match(/Localizaci[o\u00f3]n:\s*\n?\s*(.+)/i);
-  return lm ? lm[1].trim() : '';
+  if (!s) return 'Sin ubicación';
+  if (s.Cliente) {
+    var lm = s.Cliente.match(/Localizaci[o\u00f3]n:\s*\n?\s*(.+)/i);
+    if (lm && lm[1]) return lm[1].trim();
+  }
+  if (s.BucketPlanner) return String(s.BucketPlanner).trim();
+  return 'Sin ubicación';
 }
 
 function extractSvcClient(s) {
-  if (!s || !s.Cliente) return '';
-  var em = s.Cliente.match(/<([^>]+@([^>]+))>/);
-  if (em && em[2]) {
-    var domain = em[2].split('.')[0].toUpperCase();
-    return domain;
+  if (!s) return 'DIPSA';
+  if (s.Cliente) {
+    var em = s.Cliente.match(/<([^>]+@([^>]+))>/);
+    if (em && em[2]) {
+      var domain = em[2].split('.')[0].toUpperCase();
+      return domain;
+    }
+    if (s.Cliente.match(/Nombre:/i) || s.Cliente.match(/@/)) {
+      return 'DIPSA';
+    }
   }
-  return '';
+  return 'DIPSA';
 }
 
 function getEnCursoSvcs() {
