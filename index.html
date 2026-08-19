@@ -1125,8 +1125,9 @@ function buildCliFilter() {
   var filtered = getEnCursoSvcs();
   var clients = {};
   filtered.forEach(function(s) {
-    var cli = extractSvcClient(s);
-    if (cli) clients[cli] = (clients[cli] || 0) + 1;
+    var cli = String(extractSvcClient(s) || 'DIPSA').trim();
+    if (!cli) cli = 'DIPSA';
+    clients[cli] = (clients[cli] || 0) + 1;
   });
   var prev = filter.value;
   filter.innerHTML = '<option value="">-- Todos los clientes (' + filtered.length + ') --</option>';
@@ -1145,8 +1146,9 @@ function buildUbiFilter() {
   var filtered = getEnCursoSvcs();
   var locs = {};
   filtered.forEach(function(s) {
-    var loc = extractSvcLocation(s);
-    if (loc) locs[loc] = (locs[loc] || 0) + 1;
+    var loc = String(extractSvcLocation(s) || s.BucketPlanner || 'Sin ubicación').trim();
+    if (!loc) loc = 'Sin ubicación';
+    locs[loc] = (locs[loc] || 0) + 1;
   });
   var prev = filter.value;
   filter.innerHTML = '<option value="">-- Todas las ubicaciones (' + filtered.length + ') --</option>';
