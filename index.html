@@ -493,15 +493,25 @@ var LOCAL_AUTH_KEY = 'cep-local-user';
 var LOCAL_USERS = { admin: 'admin123' };
 
 function isLocalLoggedIn() {
-  return sessionStorage.getItem(LOCAL_AUTH_KEY) === 'admin';
+  var stored = localStorage.getItem(LOCAL_AUTH_KEY);
+  if (!stored && typeof sessionStorage !== 'undefined') {
+    stored = sessionStorage.getItem(LOCAL_AUTH_KEY);
+  }
+  return stored === 'admin';
 }
 
 function setLocalLoggedIn(user) {
-  sessionStorage.setItem(LOCAL_AUTH_KEY, user);
+  localStorage.setItem(LOCAL_AUTH_KEY, user);
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.setItem(LOCAL_AUTH_KEY, user);
+  }
 }
 
 function clearLocalLogin() {
-  sessionStorage.removeItem(LOCAL_AUTH_KEY);
+  localStorage.removeItem(LOCAL_AUTH_KEY);
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.removeItem(LOCAL_AUTH_KEY);
+  }
 }
 
 /* MSAL.js Authentication */
@@ -563,9 +573,12 @@ function doLogin() {
 }
 
 function getGraphToken() {
+  if (!msalInstance || typeof msalInstance.getAllAccounts !== 'function') {
+    return Promise.reject(new Error('Planner sync not available for this session'));
+  }
   var accounts = msalInstance.getAllAccounts();
   if (!accounts.length) {
-    return msalInstance.acquireTokenPopup({ scopes: GRAPH_SCOPES }).then(function(r) { return r.accessToken; });
+    return Promise.reject(new Error('No Planner account available'));
   }
   return msalInstance.acquireTokenSilent({
     scopes: GRAPH_SCOPES,
@@ -578,6 +591,10 @@ function getGraphToken() {
 }
 
 function refreshPlannerStatus() {
+  if (!msalInstance || typeof msalInstance.getAllAccounts !== 'function' || !msalInstance.getAllAccounts().length) {
+    PLANNER_SYNCED = false;
+    return Promise.resolve([]);
+  }
   return getGraphToken().then(function(token) {
     var gh = { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' };
     return Promise.all([
@@ -1030,6 +1047,8 @@ function loadServices() {
     buildCliFilter();
     buildUbiFilter();
     populateServiceDropdown();
+    /* Keep Planner-driven values synchronized in the UI when a service account exists */
+    refreshPlannerStatus().catch(function() { /* planner sync inactive in this browser session */ });
     /* Auto-select service from URL param SVC */
     var svcParam = URL_PARAMS.get('SVC') || URL_PARAMS.get('svc');
     if (svcParam) {
@@ -2633,60 +2652,66 @@ function initForm() {
   }
 }
 
-/* MSAL initialization */
-try {
-  msalInstance = new msal.PublicClientApplication(msalConfig);
-  console.log('MSAL instance created');
-} catch(e) {
-  console.error('MSAL create error:', e);
-  document.getElementById('authStatus').textContent = 'Error creando MSAL: ' + e.message;
-  document.getElementById('btnLogin').style.display = 'inline-block';
-}
+if (isLocalLoggedIn()) {
+  document.getElementById('authStatus').textContent = 'Bienvenido admin';
+  document.getElementById('authOverlay').style.display = 'none';
+  initForm();
+} else {
+  /* MSAL initialization */
+  try {
+    msalInstance = new msal.PublicClientApplication(msalConfig);
+    console.log('MSAL instance created');
+  } catch(e) {
+    console.error('MSAL create error:', e);
+    document.getElementById('authStatus').textContent = 'Error creando MSAL: ' + e.message;
+    document.getElementById('btnLogin').style.display = 'inline-block';
+  }
 
-if (msalInstance && typeof msalInstance.initialize === 'function') {
-  /* MSAL v2 async init */
-  document.getElementById('authStatus').textContent = 'Inicializando...';
-  msalInstance.initialize().then(function() {
-    console.log('MSAL initialized');
-    return msalInstance.handleRedirectPromise();
-  }).then(function(resp) {
-    console.log('handleRedirectPromise done', resp);
-    if (resp && resp.account) {
-      if (!isUserAllowed(resp.account.username)) {
-        showAccessDenied(resp.account.username);
-        return;
+  if (msalInstance && typeof msalInstance.initialize === 'function') {
+    /* MSAL v2 async init */
+    document.getElementById('authStatus').textContent = 'Inicializando...';
+    msalInstance.initialize().then(function() {
+      console.log('MSAL initialized');
+      return msalInstance.handleRedirectPromise();
+    }).then(function(resp) {
+      console.log('handleRedirectPromise done', resp);
+      if (resp && resp.account) {
+        if (!isUserAllowed(resp.account.username)) {
+          showAccessDenied(resp.account.username);
+          return;
+        }
+        document.getElementById('authStatus').textContent = 'Autenticado como ' + resp.account.username;
+        return getAccessToken().then(function() { initForm(); });
       }
-      document.getElementById('authStatus').textContent = 'Autenticado como ' + resp.account.username;
-      return getAccessToken().then(function() { initForm(); });
-    }
+      var accounts = msalInstance.getAllAccounts();
+      if (accounts.length > 0) {
+        if (!isUserAllowed(accounts[0].username)) {
+          showAccessDenied(accounts[0].username);
+          return;
+        }
+        document.getElementById('authStatus').textContent = 'Bienvenido ' + accounts[0].username;
+        return getAccessToken().then(function() { initForm(); });
+      }
+      document.getElementById('authStatus').textContent = 'Ingrese usuario y contraseña';
+      document.getElementById('btnLogin').style.display = 'inline-block';
+    }).catch(function(e) {
+      console.error('MSAL init error:', e);
+      document.getElementById('authStatus').textContent = 'Error: ' + e.message;
+      document.getElementById('btnLogin').style.display = 'inline-block';
+    });
+  } else if (msalInstance) {
+    /* MSAL v1 fallback - no initialize needed */
     var accounts = msalInstance.getAllAccounts();
     if (accounts.length > 0) {
       if (!isUserAllowed(accounts[0].username)) {
         showAccessDenied(accounts[0].username);
-        return;
+      } else {
+        getAccessToken().then(function() { initForm(); });
       }
-      document.getElementById('authStatus').textContent = 'Bienvenido ' + accounts[0].username;
-      return getAccessToken().then(function() { initForm(); });
-    }
-    document.getElementById('authStatus').textContent = 'Ingrese usuario y contraseña';
-    document.getElementById('btnLogin').style.display = 'inline-block';
-  }).catch(function(e) {
-    console.error('MSAL init error:', e);
-    document.getElementById('authStatus').textContent = 'Error: ' + e.message;
-    document.getElementById('btnLogin').style.display = 'inline-block';
-  });
-} else if (msalInstance) {
-  /* MSAL v1 fallback - no initialize needed */
-  var accounts = msalInstance.getAllAccounts();
-  if (accounts.length > 0) {
-    if (!isUserAllowed(accounts[0].username)) {
-      showAccessDenied(accounts[0].username);
     } else {
-      getAccessToken().then(function() { initForm(); });
+      document.getElementById('authStatus').textContent = 'Ingrese usuario y contraseña';
+      document.getElementById('btnLogin').style.display = 'inline-block';
     }
-  } else {
-    document.getElementById('authStatus').textContent = 'Ingrese usuario y contraseña';
-    document.getElementById('btnLogin').style.display = 'inline-block';
   }
 }
 </script>
