@@ -684,33 +684,39 @@ function refreshPlannerStatus() {
 
 function writeBackEstadoPlanner() {
   /* Write updated EstadoPlanner back to SharePoint in background */
-  getToken().then(function(token) {
+  var changed = SVCS.filter(function(s) {
+    return s._estadoPlannerOriginal !== undefined && s._estadoPlannerOriginal !== (s.EstadoPlanner || '');
+  });
+  if (!changed.length) {
+    console.log('[WriteBack] No changes to write');
+    return;
+  }
+  getDigest().then(function(digest) {
     var h = {
-      'Authorization': 'Bearer ' + token,
-      'Accept': 'application/json;odata=nometadata',
-      'Content-Type': 'application/json;odata=nometadata',
+      'Accept': 'application/json;odata=verbose',
+      'Content-Type': 'application/json;odata=verbose',
+      'X-RequestDigest': digest,
       'IF-MATCH': '*',
       'X-HTTP-Method': 'MERGE'
     };
-    var changed = SVCS.filter(function(s) {
-      return s._estadoPlannerOriginal !== undefined && s._estadoPlannerOriginal !== (s.EstadoPlanner || '');
-    });
-    if (!changed.length) { console.log('[WriteBack] No changes to write'); return; }
     console.log('[WriteBack] Writing ' + changed.length + ' EstadoPlanner updates to SharePoint');
     var chain = Promise.resolve();
     changed.forEach(function(svc) {
       chain = chain.then(function() {
-        return fetch(SP_SITE + "/_api/web/lists/getbytitle('Servicios Activos')/items(" + svc.Id + ")",
-          { method: 'POST', headers: h, body: JSON.stringify({ EstadoPlanner: svc.EstadoPlanner || '' }) }
-        ).then(function(r) {
-          if (r.ok) {
-            svc._estadoPlannerOriginal = svc.EstadoPlanner || '';
-            console.log('[WriteBack] Updated ' + svc.Title + ' -> ' + svc.EstadoPlanner);
-          }
-        }).catch(function() {});
+        return spFetch(SITE + "/_api/web/lists/getbytitle('Servicios Activos')/items(" + svc.Id + ")", {
+          method: 'POST',
+          headers: h,
+          body: JSON.stringify({ EstadoPlanner: svc.EstadoPlanner || '' })
+        }).then(function() {
+          svc._estadoPlannerOriginal = svc.EstadoPlanner || '';
+          console.log('[WriteBack] Updated ' + svc.Title + ' -> ' + svc.EstadoPlanner);
+        });
       });
     });
-  }).catch(function(e) { console.warn('[WriteBack] Error:', e); });
+    return chain;
+  }).catch(function(e) {
+    console.warn('[WriteBack] Error:', e);
+  });
 }
 
 function updateModeUI() {
