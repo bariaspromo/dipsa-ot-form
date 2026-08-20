@@ -1102,7 +1102,7 @@ function extractSvcLocation(s) {
 function extractSvcClient(s) {
   if (!s) return 'DIPSA';
   if (s.Cliente) {
-    var em = s.Cliente.match(/<([^>]+@([^>]+))>/);
+    var em = s.Cliente.match(/([A-Z0-9._%+\-]+@([A-Z0-9.\-]+\.[A-Z]{2,}))/i);
     if (em && em[2]) {
       var domain = em[2].split('.')[0].toUpperCase();
       return domain;
@@ -1654,7 +1654,7 @@ function onServChange() {
   if (!_skipOTLookup) {
     /* Auto-generate 5-digit NoSeguimiento (NOT the service number) */
     autoGenerateSeguimiento();
-    document.getElementById('fCli').value = 'DIPSA';
+    document.getElementById('fCli').value = extractSvcClient(svc) || 'DIPSA';
     document.getElementById('fLugar').value = ubi || '';
     document.getElementById('fLugarDisplay').value = ubi || '';
 
