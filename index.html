@@ -544,7 +544,7 @@ var PLANNER_SYNCED = false;
 var ALLOWED_USERS = ['servicio@cep.com.do'];
 var PROXY_BASE = (location.hostname === '127.0.0.1' || location.hostname === 'localhost')
   ? 'http://127.0.0.1:8765'
-  : 'https://func-dipsa-operaciones.azurewebsites.net/api';
+  : 'https://dipsa-sp-proxy.bariaspromo.workers.dev';
 
 function isUserAllowed(username) {
   return ALLOWED_USERS.indexOf((username || '').toLowerCase()) !== -1;
