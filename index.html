@@ -1013,7 +1013,11 @@ function loadFieldChoices() {
       }
     });
   }).catch(function(e) {
-    showToast('Error cargando opciones: ' + e.message, 'error', 5000);
+    var msg = 'Error cargando opciones: ' + e.message;
+    if (e && e.message && e.message.indexOf('HTTP 401') !== -1) {
+      msg = 'Error cargando opciones: sesión interna de SharePoint vencida (401). Reinicie el proxy interno y recargue.';
+    }
+    showToast(msg, 'error', 7000);
   });
 }
 
