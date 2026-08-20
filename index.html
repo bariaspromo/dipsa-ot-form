@@ -9,7 +9,7 @@
 <title>Nueva Orden de Trabajo - CEP DIPSA</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f3f2f1;color:#323130;min-height:100vh}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f3f2f1;color:#323130;min-height:100vh;overflow-x:hidden}
 .top-bar{background:#0078d4;padding:8px 20px;display:flex;align-items:center;gap:12px}
 .top-bar a{color:#fff;text-decoration:none;font-size:13px;opacity:0.85}
 .top-bar a:hover{opacity:1}
@@ -123,40 +123,96 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f3f2f1;
 
 /* ===== RESPONSIVE MOBILE ===== */
 @media (max-width: 640px) {
-  .container{padding:8px}
-  .header{padding:18px 16px;border-radius:8px 8px 0 0}
-  .header h1{font-size:17px}
-  .header .company{font-size:12px}
+  /* --- Layout base --- */
+  html,body{overflow-x:hidden}
+  .container{padding:0;max-width:100%}
+  .header{padding:14px 14px;border-radius:0}
+  .header h1{font-size:16px}
+  .header .company{font-size:11px}
   .header p{font-size:11px}
-  .progress{padding:8px 12px;gap:4px;font-size:11px}
+
+  /* --- Top bar --- */
+  .top-bar{padding:6px 10px;gap:6px;flex-wrap:wrap}
+  .top-bar a{font-size:12px}
+
+  /* --- Progress steps --- */
+  .progress{padding:8px 10px;gap:4px;font-size:10px;flex-wrap:wrap}
+
+  /* --- Quick tools --- */
   .quick-tools{padding:10px 12px;gap:8px;flex-direction:column;align-items:stretch}
-  .quick-tools .tool-field{min-width:auto}
+  .quick-tools .tool-field{min-width:auto;width:100%}
   .quick-tools .mode-pill{align-self:flex-start}
-  .quick-tools .tool-btn{width:100%;text-align:center;padding:10px}
-  .sec-header{padding:12px 14px}
-  .sec-header h2{font-size:14px}
-  .sec-content{padding:8px 14px 16px;grid-template-columns:1fr;gap:12px}
-  .field input,.field select,.field textarea{font-size:16px;padding:10px 12px}
+  .quick-tools .tool-btn{width:100%;text-align:center;padding:12px;font-size:13px}
+  .quick-tools .tool-btn.primary{padding:12px}
+
+  /* --- Section headers --- */
+  .sec-header{padding:12px 12px}
+  .sec-header h2{font-size:13px}
+
+  /* --- Form fields: 1 column --- */
+  .sec-content{padding:8px 12px 16px;grid-template-columns:1fr;gap:10px}
+  .field input,.field select,.field textarea{font-size:16px;padding:11px 12px}
   .field label{font-size:12px}
   .radio-group,.checkbox-group{gap:8px 12px}
-  .radio-group label,.checkbox-group label{font-size:12px}
-  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .tbl-wrap table{min-width:600px}
-  .btn-row{padding:16px 14px 0;gap:8px;flex-direction:column}
-  .btn-row .btn{width:100%;text-align:center;padding:14px}
-  .toast{top:auto;bottom:10px;right:10px;left:10px;max-width:none;font-size:13px;padding:12px 16px}
-  .svc-card{font-size:12px;line-height:1.6;padding:10px 12px}
-  .ot-history table{min-width:500px;font-size:11px}
+  .radio-group label,.checkbox-group label{font-size:13px}
+
+  /* --- Tables: stack cards on mobile --- */
+  .tbl-wrap{overflow-x:visible;-webkit-overflow-scrolling:touch}
+  .tbl-wrap table{min-width:unset;width:100%;font-size:12px}
+  /* Hide less important columns on mobile */
+  .tbl-wrap table#tblEq th:nth-child(6),
+  .tbl-wrap table#tblEq td:nth-child(6){display:none} /* RNC column */
+  .tbl-wrap table#tblEq th:nth-child(5),
+  .tbl-wrap table#tblEq td:nth-child(5){display:none} /* Proveedor column */
+  .tbl-wrap td input{font-size:14px;padding:6px 4px}
+  .tbl-wrap td input[type=number]{padding:6px 2px}
+  .tbl-wrap td input[type=file]{font-size:11px}
+  .tbl-wrap th,.tbl-wrap td{padding:6px 5px}
+  .tbl-wrap .btn-add{width:100%;padding:10px;font-size:13px;margin-top:8px}
+
+  /* --- Buttons --- */
+  .btn-row{padding:14px 12px 0;gap:8px;flex-direction:column}
+  .btn-row .btn{width:100%;text-align:center;padding:14px;font-size:15px}
+
+  /* --- Toast --- */
+  .toast{top:auto;bottom:10px;right:8px;left:8px;max-width:none;font-size:13px;padding:12px 16px}
+
+  /* --- Service card --- */
+  .svc-card{font-size:12px;line-height:1.7;padding:10px 12px}
+
+  /* --- OT history --- */
+  .ot-history{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .ot-history table{min-width:420px;font-size:11px}
   .ot-history .ot-warn{font-size:12px;padding:8px 10px}
-  .attach-zone{padding:14px}
-  .attach-zone .icon{font-size:24px}
-  .attach-item{width:80px}
-  .attach-item img{height:55px}
-  .success-panel{padding:40px 16px}
-  .top-bar{padding:6px 12px;gap:8px;flex-wrap:wrap}
-  .top-bar a{font-size:12px}
-  /* Filter row stack */
+
+  /* --- Attachments --- */
+  .attach-zone{padding:20px 16px;min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .attach-zone .icon{font-size:32px;margin-bottom:6px}
+  .attach-zone p{font-size:13px}
+  .attach-item{width:85px}
+  .attach-item img{height:60px}
+
+  /* --- Success panel --- */
+  .success-panel{padding:36px 14px}
+
+  /* --- Filter row stack --- */
   .field.full > div[style*="display:flex"]{flex-direction:column !important;gap:8px !important}
+
+  /* --- Auth overlay --- */
+  #authOverlay > div{padding:28px 20px;width:calc(100% - 32px);max-width:360px}
+}
+
+/* --- Tablet (641px – 900px): 2 columns but compact --- */
+@media (min-width: 641px) and (max-width: 900px) {
+  .container{padding:12px}
+  .header{padding:20px 20px}
+  .sec-header{padding:14px 18px}
+  .sec-content{padding:8px 18px 16px;gap:12px 18px}
+  .quick-tools{padding:12px 18px}
+  .btn-row{padding:16px 18px 0}
+  .tbl-wrap table{font-size:12px}
+  .tbl-wrap th,.tbl-wrap td{padding:6px 7px}
+  .toast{right:12px;left:auto;max-width:340px}
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.39.0/lib/msal-browser.min.js" crossorigin="anonymous"></script>
@@ -436,10 +492,10 @@ if (typeof msal === 'undefined') { document.write('<scr'+'ipt src="https://alcdn
 <div class="field full">
 <label>Foto de OT f&iacute;sica / Documentos</label>
 <div class="attach-zone" id="attachZone" onclick="document.getElementById('fileInput').click()">
-<div class="icon">&#128206;</div>
-<p>Haz clic o arrastra archivos aqu&iacute;<br><small>Im&aacute;genes (JPG, PNG) o PDF &mdash; m&aacute;x 10 MB cada uno</small></p>
+<div class="icon">&#128247;</div>
+<p>Toca para adjuntar foto o archivo<br><small>C&aacute;mara, Galer&iacute;a, PDF &mdash; m&aacute;x 10 MB c/u</small></p>
 </div>
-<input type="file" id="fileInput" multiple accept="image/*,.pdf" style="display:none" onchange="onFilesSelected(this.files)">
+<input type="file" id="fileInput" multiple accept="image/*,.pdf,video/*" capture="environment" style="display:none" onchange="onFilesSelected(this.files)">
 <div class="attach-preview" id="attachPreview"></div>
 </div>
 </div>
