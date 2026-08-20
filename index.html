@@ -2179,17 +2179,14 @@ function syncResumenYInformes(otData, materiales, equipos, manoObraItems, digest
     var html = buildInformeHTML(resumenFields);
     var filename = 'informe_servicio_' + noseg + '.html';
     var blob = new Blob([html], { type: 'text/html' });
-    return getAccessToken().then(function(token) {
-      return fetch(SITE + "/_api/web/getfolderbyserverrelativeurl('SiteAssets')/files/add(url='" + filename + "',overwrite=true)", {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Accept': 'application/json;odata=verbose',
-          'X-RequestDigest': digest,
-          'Content-Type': 'application/octet-stream'
-        },
-        body: blob
-      });
+    return proxyFetchRaw(SITE + "/_api/web/getfolderbyserverrelativeurl('SiteAssets')/files/add(url='" + filename + "',overwrite=true)", {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json;odata=verbose',
+        'X-RequestDigest': digest,
+        'Content-Type': 'application/octet-stream'
+      },
+      body: blob
     }).then(function(r) {
       if (!r.ok) { console.warn('Informe HTML upload failed:', r.status); return; }
       var fileUrl = SITE + '/SiteAssets/' + filename;
@@ -2567,21 +2564,18 @@ function uploadAttachments(itemId) {
       uploadChain = uploadChain.then(function() {
         var safeName = spSafeFileName(file.name);
         return file.arrayBuffer().then(function(buf) {
-          return getAccessToken().then(function(token) {
-            return fetch(
-              SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + itemId + ")/AttachmentFiles/add(FileName='" + encodeURIComponent(safeName) + "')",
-              {
-                method: 'POST',
-                headers: {
-                  'Authorization': 'Bearer ' + token,
-                  'X-RequestDigest': freshDigest,
-                  'Accept': 'application/json;odata=verbose'
-                },
-                body: buf
-              }
-            ).then(function(r) {
-              if (!r.ok) return r.text().then(function(t) { throw new Error('Upload ' + file.name + ' (' + r.status + '): ' + t.substring(0, 300)); });
-            });
+          return proxyFetchRaw(
+            SITE + "/_api/web/lists/getbytitle('" + OT_LIST_TITLE + "')/items(" + itemId + ")/AttachmentFiles/add(FileName='" + encodeURIComponent(safeName) + "')",
+            {
+              method: 'POST',
+              headers: {
+                'X-RequestDigest': freshDigest,
+                'Accept': 'application/json;odata=verbose'
+              },
+              body: buf
+            }
+          ).then(function(r) {
+            if (!r.ok) return r.text().then(function(t) { throw new Error('Upload ' + file.name + ' (' + r.status + '): ' + t.substring(0, 300)); });
           });
         });
       });
