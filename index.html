@@ -41,14 +41,14 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f3f2f1;
 .sec-header .badge{background:#0078d4;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;margin-right:8px}
 .sec-header .chev{font-size:12px;color:#605e5c;transition:transform 0.2s}
 .sec-header.collapsed .chev{transform:rotate(-90deg)}
-.sec-content{padding:8px 28px 20px;display:grid;grid-template-columns:1fr 1fr;gap:14px 24px}
+.sec-content{padding:8px 28px 20px;display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;min-width:0}
 .sec-content.hidden{display:none}
-.field{display:flex;flex-direction:column}
+.field{display:flex;flex-direction:column;min-width:0}
 .field.full{grid-column:1/-1}
 .field label{font-size:13px;font-weight:600;color:#323130;margin-bottom:5px;display:flex;align-items:center;gap:4px}
 .field label .req{color:#d13438;font-weight:700}
 .field label .auto-tag{background:#0078d4;color:#fff;font-size:9px;padding:1px 7px;border-radius:10px;font-weight:600;margin-left:4px}
-.field input,.field select,.field textarea{padding:8px 12px;border:1px solid #8a8886;border-radius:4px;font-size:14px;color:#323130;background:#fff;transition:border-color 0.15s,box-shadow 0.15s;font-family:inherit}
+.field input,.field select,.field textarea{padding:8px 12px;border:1px solid #8a8886;border-radius:4px;font-size:14px;color:#323130;background:#fff;transition:border-color 0.15s,box-shadow 0.15s;font-family:inherit;width:100%;box-sizing:border-box}
 .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#0078d4;box-shadow:0 0 0 2px rgba(0,120,212,0.15)}
 .field input:disabled,.field select:disabled,.field textarea:disabled{background:#f3f2f1;color:#605e5c;cursor:not-allowed;border-color:#c8c6c4}
 .field input.error,.field select.error,.field textarea.error{border-color:#d13438;box-shadow:0 0 0 2px rgba(209,52,56,0.12)}
