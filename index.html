@@ -908,7 +908,7 @@ function addMatRowWithData(row) {
   var tbody = document.getElementById('tbodyMat');
   if (!tr) return;
   var inputs = tr.querySelectorAll('input');
-  inputs[0].value = (row.Fecha || '').toString().slice(0, 10) || matToday();
+  inputs[0].value = (row.Fecha || row.Codigo || '').toString().slice(0, 10) || matToday();
   inputs[1].value = row.Monto || row.Precio || '';
   if (row.FotoNombre) setMatPhotoMeta(tr, row.FotoNombre);
   return tr;
@@ -1469,7 +1469,7 @@ function nuevoModoCrear() {
 
 function loadExistingSubItems() {
   if (!IS_EDIT_MODE) return Promise.resolve();
-  var matUrl = SITE + "/_api/web/lists/getbytitle('" + MAT_LIST_TITLE + "')/items?$select=ID,Fecha,Precio&$filter=OrdenTrabajoId eq " + EDIT_ID + "&$orderby=ID asc";
+  var matUrl = SITE + "/_api/web/lists/getbytitle('" + MAT_LIST_TITLE + "')/items?$select=ID,Codigo,Precio&$filter=OrdenTrabajoId eq " + EDIT_ID + "&$orderby=ID asc";
   var eqUrl = SITE + "/_api/web/lists/getbytitle('" + EQ_LIST_TITLE + "')/items?$select=ID,Codigo,Cantidad,Descripcion,Precio,Proveedor,RNC,EquipoPropio&$filter=OrdenTrabajoId eq " + EDIT_ID + "&$orderby=ID asc";
   var moUrl = SITE + "/_api/web/lists/getbytitle('" + MO_LIST_TITLE + "')/items?$select=ID,Codigo,Cantidad,Descripcion,Tipo&$filter=OrdenTrabajoId eq " + EDIT_ID + "&$orderby=ID asc";
 
@@ -2281,7 +2281,7 @@ function guardar() {
   var manoObra = getMoTableData();
   var materialesPayload = materiales.map(function(m) {
     return {
-      Fecha: m.Fecha || null,
+      Codigo: m.Fecha || null,
       Precio: parseFloat(m.Monto || m.Precio) || 0,
       Title: m.Title || (m.Fecha ? ('Compra ' + String(m.Fecha).slice(0, 10)) : 'Compra')
     };
